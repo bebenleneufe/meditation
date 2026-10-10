@@ -6,6 +6,7 @@ import { BREATHING_MODES, BreathingGuide } from './breathing.js';
 import { GuidedScript } from './guided-script.js';
 import { SessionHistory } from './history.js';
 import { ScreenWakeLock } from './wake-lock.js';
+import { buildDailyReminderCalendar, downloadCalendarFile, isValidReminderTime } from './reminder.js';
 import { ALL_MEDITATIONS, FREE_MEDITATION_ID, audioTrackPath, findMeditation } from './meditations.js';
 import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences.js';
 import { describeDuration, formatClock } from './format.js';
@@ -63,6 +64,8 @@ class MeditationApp {
       ambienceList: requireElement(rootElement, '[data-ambience-list]'),
       ambienceVolumeField: requireElement(rootElement, '[data-ambience-volume-field]'),
       ambienceToggle: requireElement(rootElement, '[data-ambience-toggle]'),
+      reminderButton: requireElement(rootElement, '[data-reminder-button]'),
+      reminderStatus: requireElement(rootElement, '[data-reminder-status]'),
       sessionTitle: requireElement(rootElement, '[data-session-title]'),
       cue: requireElement(rootElement, '[data-cue]'),
       clock: requireElement(rootElement, '[data-clock]'),
@@ -119,6 +122,7 @@ class MeditationApp {
     pauseButton.addEventListener('click', () => this.#togglePause(), { signal });
     stopButton.addEventListener('click', () => this.#stopSessionEarly(), { signal });
     this.#elements.ambienceToggle.addEventListener('click', () => this.#toggleAmbienceMute(), { signal });
+    this.#elements.reminderButton.addEventListener('click', () => this.#exportDailyReminder(), { signal });
     backButton.addEventListener('click', () => this.#showView('setup'), { signal });
     document.addEventListener('keydown', (event) => this.#handleKeydown(event), { signal });
     document.addEventListener('visibilitychange', () => this.#handleVisibilityChange(), { signal });
@@ -186,6 +190,9 @@ class MeditationApp {
       breathingGuideEnabled: formData.get('breathingGuide') !== null,
       ambienceId: formData.get('ambience') ?? DEFAULT_PREFERENCES.ambienceId,
       ambienceVolume: Number(formData.get('ambienceVolume')) || DEFAULT_PREFERENCES.ambienceVolume,
+      reminderTime: isValidReminderTime(formData.get('reminderTime'))
+        ? formData.get('reminderTime')
+        : DEFAULT_PREFERENCES.reminderTime,
     };
   }
 
@@ -197,6 +204,7 @@ class MeditationApp {
     formControls.namedItem('breathingGuide').checked = preferences.breathingGuideEnabled;
     formControls.namedItem('ambience').value = preferences.ambienceId;
     formControls.namedItem('ambienceVolume').value = String(preferences.ambienceVolume);
+    formControls.namedItem('reminderTime').value = preferences.reminderTime;
   }
 
   #createSession(meditation, preferences) {
@@ -390,6 +398,19 @@ class MeditationApp {
     }
   }
 
+  #exportDailyReminder() {
+    try {
+      const { reminderTime } = this.#readFormPreferences();
+      const appUrl = new URL('./', window.location.href).href;
+      downloadCalendarFile(buildDailyReminderCalendar({ reminderTime, appUrl }), 'rappel-meditation.ics');
+      this.#elements.reminderStatus.textContent =
+        `Rappel de ${reminderTime} prêt : ouvrez le fichier « rappel-meditation.ics » pour l'ajouter à votre agenda.`;
+    } catch (error) {
+      console.error('Création du rappel impossible.', error);
+      this.#elements.reminderStatus.textContent = "Le rappel n'a pas pu être créé. Réessayez, ou ajoutez-le à la main dans votre agenda.";
+    }
+  }
+
   #toggleAmbienceMute() {
     if (!this.#ambience.isPlaying) {
       return;
@@ -428,12 +449,25 @@ class MeditationApp {
   }
 }
 
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+  try {
+    await navigator.serviceWorker.register('./sw.js');
+  } catch (error) {
+    // Expected in sandboxed previews; the app simply runs without offline support there.
+    console.info('Mode hors ligne indisponible ici.', error);
+  }
+}
+
 try {
   const meditationApp = new MeditationApp(
     requireElement(document, '[data-app]'),
     requireElement(document, '[data-meditation-option-template]'),
   );
   meditationApp.init();
+  registerServiceWorker();
   window.addEventListener('pagehide', (event) => {
     // A page kept in the back/forward cache will be shown again as-is, so it must stay alive.
     if (!event.persisted) {

@@ -377,6 +377,32 @@ body {
   font-size: 1.15rem;
 }
 
+.time-input {
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: var(--bg);
+  border: 0;
+  border-radius: 12px;
+}
+
+.button--secondary {
+  padding: 12px 20px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--bg);
+  border-radius: 999px;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 .slider {
   flex: 1;
   max-width: 220px;

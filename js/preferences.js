@@ -1,5 +1,6 @@
 import { readJson, writeJson } from './storage.js';
 import { isKnownAmbience } from './ambience.js';
+import { isValidReminderTime } from './reminder.js';
 
 const PREFERENCES_KEY = 'meditation.preferences.v1';
 
@@ -10,6 +11,7 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   breathingGuideEnabled: true,
   ambienceId: 'nappe',
   ambienceVolume: 0.5,
+  reminderTime: '08:00',
 });
 
 function isPositiveNumber(candidate) {
@@ -44,6 +46,9 @@ function sanitizePreferences(storedPreferences) {
     && storedPreferences.ambienceVolume >= 0
     && storedPreferences.ambienceVolume <= 1) {
     sanitizedPreferences.ambienceVolume = storedPreferences.ambienceVolume;
+  }
+  if (isValidReminderTime(storedPreferences.reminderTime)) {
+    sanitizedPreferences.reminderTime = storedPreferences.reminderTime;
   }
   return sanitizedPreferences;
 }
