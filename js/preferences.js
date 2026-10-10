@@ -7,8 +7,6 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   durationMinutes: 10,
   intervalMinutes: 0,
   breathingGuideEnabled: true,
-  voiceEnabled: true,
-  voiceName: null,
 });
 
 function isPositiveNumber(candidate) {
@@ -35,12 +33,6 @@ function sanitizePreferences(storedPreferences) {
   }
   if (typeof storedPreferences.breathingGuideEnabled === 'boolean') {
     sanitizedPreferences.breathingGuideEnabled = storedPreferences.breathingGuideEnabled;
-  }
-  if (typeof storedPreferences.voiceEnabled === 'boolean') {
-    sanitizedPreferences.voiceEnabled = storedPreferences.voiceEnabled;
-  }
-  if (isNonEmptyString(storedPreferences.voiceName)) {
-    sanitizedPreferences.voiceName = storedPreferences.voiceName;
   }
   return sanitizedPreferences;
 }

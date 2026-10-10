@@ -337,32 +337,6 @@ select {
   color: var(--color-muted);
 }
 
-.voice-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.voice-picker__row {
-  display: flex;
-  gap: 8px;
-}
-
-.voice-picker select {
-  flex: 1;
-  min-width: 0;
-}
-
-.button--small {
-  padding: 6px 14px;
-}
-
-.note {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-muted);
-}
-
 .session-title {
   margin: 0;
   font-size: 0.8rem;

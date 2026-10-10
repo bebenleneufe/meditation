@@ -34,7 +34,7 @@ export const GUIDED_MEDITATIONS = Object.freeze([
       { atSeconds: 115, text: 'Si cela vous aide, notez intérieurement : inspire… expire.' },
       { atSeconds: 165, text: "Votre esprit va s'éloigner vers des pensées. C'est ainsi qu'il fonctionne. Chaque fois que vous le remarquez, revenez au souffle, sans vous juger." },
       { atSeconds: 235, text: "Revenir, c'est l'exercice lui-même. Chaque retour est un moment de pleine conscience." },
-      { atSeconds: 305, text: 'Remarquez la courte pause à la fin de chaque expiration, avant que le souffle ne revienne.' },
+      { atSeconds: 305, text: "Remarquez le petit temps d'arrêt à la fin de chaque expiration, avant que le souffle ne revienne." },
       { atSeconds: 375, text: "Où est votre attention en ce moment ? Si elle s'est égarée, ramenez-la doucement." },
       { atSeconds: 445, text: 'Laissez le souffle être comme il est : long ou court, profond ou léger.' },
       { atSeconds: 510, text: 'Restez avec chaque respiration, une à la fois.' },
@@ -58,7 +58,7 @@ export const GUIDED_MEDITATIONS = Object.freeze([
       { atSeconds: 260, text: 'Remontez vers la poitrine. Vous sentez peut-être les battements du cœur.' },
       { atSeconds: 305, text: "Portez l'attention sur le bas du dos, puis le haut du dos. Si vous rencontrez une tension, respirez vers elle, et laissez-la s'adoucir." },
       { atSeconds: 355, text: 'Les épaules, maintenant. Laissez-les descendre un peu, se relâcher.' },
-      { atSeconds: 400, text: "Descendez le long des bras : les coudes, les avant-bras, les poignets… jusqu'au bout des doigts." },
+      { atSeconds: 400, text: "Descendez le long des bras, jusqu'aux mains : les avant-bras, les poignets… et le bout des doigts." },
       { atSeconds: 445, text: 'Revenez vers la nuque et la gorge. Laissez-les se détendre.' },
       { atSeconds: 485, text: 'Observez votre visage : la mâchoire, que vous pouvez desserrer… les joues… les yeux… le front.' },
       { atSeconds: 530, text: 'Enfin, le sommet de la tête.' },
@@ -100,7 +100,7 @@ export const GUIDED_MEDITATIONS = Object.freeze([
       { atSeconds: 60, text: 'Commencez par vous-même. Répétez intérieurement : que je sois en paix… que je sois en bonne santé… que je vive avec aisance.' },
       { atSeconds: 110, text: "Laissez ces mots résonner. Il n'est pas nécessaire de ressentir quelque chose de particulier : l'intention suffit." },
       { atSeconds: 150, text: 'Pensez maintenant à quelqu\'un que vous aimez. Voyez son visage.' },
-      { atSeconds: 168, text: 'Adressez-lui ces vœux : que tu sois en paix… que tu sois en bonne santé… que tu vives avec aisance.' },
+      { atSeconds: 168, text: 'Offrez-lui ces vœux : que tu sois en paix… que tu sois en bonne santé… que tu vives avec aisance.' },
       { atSeconds: 230, text: 'Pensez à une personne que vous connaissez à peine, croisée récemment.' },
       { atSeconds: 248, text: 'Offrez-lui les mêmes vœux : que tu sois en paix… que tu sois en bonne santé… que tu vives avec aisance.' },
       { atSeconds: 310, text: "Si vous le pouvez, pensez à une personne avec qui c'est plus difficile. Commencez par quelqu'un de seulement un peu difficile." },
@@ -123,6 +123,11 @@ export const FREE_MEDITATION = Object.freeze({
 });
 
 export const ALL_MEDITATIONS = Object.freeze([...GUIDED_MEDITATIONS, FREE_MEDITATION]);
+
+// Files produced by tools/generate_audio.py, which names them after the meditation id.
+export function audioTrackPath(meditation) {
+  return `audio/${meditation.id}.mp3`;
+}
 
 export function findMeditation(meditationId) {
   return ALL_MEDITATIONS.find((meditation) => meditation.id === meditationId) ?? null;

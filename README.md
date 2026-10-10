@@ -10,7 +10,8 @@ Une petite appli de méditation, juste pour moi. Pas de compte, pas de pub, pas 
   - Scan corporel (12 min)
   - Observer les pensées (8 min)
   - Bienveillance (10 min)
-- **Voix d'homme posée** : l'appli cherche une voix française masculine (Thomas sur Mac et iPhone, Henri ou Paul sur Windows et Edge…). La lecture est lente et un peu grave. On peut choisir une autre voix et l'écouter avant la séance.
+- **Voix d'homme posée**, enregistrée dans de vrais fichiers audio (dossier `audio/`). Chaque méditation est une seule piste : cloche, consignes, silences, cloches de fin.
+  La piste continue de jouer quand le téléphone se verrouille. Si elle ne se charge pas, la séance continue avec les consignes à l'écran.
 - **Méditation libre**, sans voix :
   - durée de 1 à 30 minutes ;
   - cloche d'intervalle en option ;
@@ -34,6 +35,26 @@ python3 -m http.server 8000
 
 Pour l'avoir sur le téléphone, le plus simple est d'activer **GitHub Pages** sur ce dépôt (Settings → Pages → branche `main`, dossier `/`).
 
+## Régénérer les pistes audio
+
+Les pistes sont produites par [Piper](https://github.com/rhasspy/piper), une synthèse vocale libre qui tourne hors ligne, avec la voix **tom** (fr_FR, qualité medium).
+Les textes et le moment de chaque consigne viennent de `js/meditations.js`. Après une modification de ce fichier :
+
+```sh
+python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt
+curl -LO https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/tom/medium/fr_FR-tom-medium.onnx
+curl -LO https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/tom/medium/fr_FR-tom-medium.onnx.json
+.venv/bin/python tools/generate_audio.py --voice fr_FR-tom-medium.onnx   # ou --only scan-corporel
+```
+
+Il faut aussi `node` et `ffmpeg`. Le script refuse d'écrire une piste si une consigne lue déborde sur la suivante : il indique laquelle, et il suffit d'espacer les `atSeconds`.
+
+Pour essayer une autre voix, il suffit de passer un autre modèle Piper à `--voice`.
+
+Quelques mots sont mal prononcés par la voix tom (« coudes », « pause », « adressez ») : les textes les évitent.
+
+Crédits : voix « tom » de Piper, entraînée sur le [jeu de données de Tjiho](https://git.bksp.space/Tjiho/French-tts-model-piper) (licence AGPLv3).
+
 ## Organisation
 
 ```
@@ -44,7 +65,9 @@ js/timer.js         minuteur sans dérive (basé sur un horodatage de fin)
 js/bell.js          synthèse de la cloche
 js/meditations.js   textes des méditations guidées et moment de chaque consigne
 js/guided-script.js déroulé des consignes pendant la séance
-js/narrator.js      voix (Web Speech API) et choix d'une voix masculine
+js/audio-track.js   lecture de la piste audio, qui sert aussi d'horloge à la séance
+audio/              pistes MP3 générées (une par méditation guidée)
+tools/              script de génération des pistes
 js/breathing.js     cercle de respiration (rythmé ou ambiant)
 js/history.js       historique et série de jours
 js/preferences.js   réglages mémorisés

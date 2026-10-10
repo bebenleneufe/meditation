@@ -1,18 +1,17 @@
 import { MeditationTimer } from './timer.js';
+import { AudioTrackPlayer } from './audio-track.js';
 import { Bell } from './bell.js';
 import { BREATHING_MODES, BreathingGuide } from './breathing.js';
 import { GuidedScript } from './guided-script.js';
-import { Narrator } from './narrator.js';
 import { SessionHistory } from './history.js';
 import { ScreenWakeLock } from './wake-lock.js';
-import { ALL_MEDITATIONS, FREE_MEDITATION_ID, findMeditation } from './meditations.js';
+import { ALL_MEDITATIONS, FREE_MEDITATION_ID, audioTrackPath, findMeditation } from './meditations.js';
 import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences.js';
 import { describeDuration, formatClock } from './format.js';
 
 const MINIMUM_RECORDED_SECONDS = 60;
 const END_BELL_STRIKES = 3;
 const INTERVAL_BELL_VOLUME = 0.35;
-const VOICE_PREVIEW_TEXT = 'Bonjour. Installez-vous confortablement, et prenez une grande inspiration.';
 
 function requireElement(rootElement, selector) {
   const element = rootElement.querySelector(selector);
@@ -29,14 +28,13 @@ function describeMeditationLength(meditation) {
 class MeditationApp {
   #elements;
   #timer;
+  #audioTrack;
   #breathingGuide;
-  #narrator = null;
   #bell = new Bell();
   #history = new SessionHistory();
   #wakeLock = new ScreenWakeLock();
   #listenersController = new AbortController();
   #activeSession = null;
-  #preferredVoiceName = null;
 
   constructor(rootElement, optionTemplate) {
     this.#elements = {
@@ -44,12 +42,7 @@ class MeditationApp {
       views: rootElement.querySelectorAll('[data-view]'),
       setupForm: requireElement(rootElement, '[data-setup-form]'),
       meditationList: requireElement(rootElement, '[data-meditation-list]'),
-      guidedOptions: requireElement(rootElement, '[data-guided-options]'),
       freeOptions: requireElement(rootElement, '[data-free-options]'),
-      voicePicker: requireElement(rootElement, '[data-voice-picker]'),
-      voiceSelect: requireElement(rootElement, '[data-voice-select]'),
-      voicePreviewButton: requireElement(rootElement, '[data-voice-preview]'),
-      voiceUnavailableNote: requireElement(rootElement, '[data-voice-unavailable]'),
       sessionTitle: requireElement(rootElement, '[data-session-title]'),
       cue: requireElement(rootElement, '[data-cue]'),
       clock: requireElement(rootElement, '[data-clock]'),
@@ -61,10 +54,12 @@ class MeditationApp {
       minutesStat: requireElement(rootElement, '[data-stat="minutes"]'),
       streakStat: requireElement(rootElement, '[data-stat="streak"]'),
     };
-    this.#timer = new MeditationTimer({
+    const sessionCallbacks = {
       onTick: (progress) => this.#handleTick(progress),
       onComplete: () => this.#handleComplete(),
-    });
+    };
+    this.#timer = new MeditationTimer(sessionCallbacks);
+    this.#audioTrack = new AudioTrackPlayer(sessionCallbacks);
     this.#breathingGuide = new BreathingGuide({
       circleElement: requireElement(rootElement, '[data-breath-circle]'),
       labelElement: requireElement(rootElement, '[data-breath-label]'),
@@ -73,12 +68,8 @@ class MeditationApp {
 
   init() {
     this.#renderMeditationOptions();
-    const preferences = loadPreferences();
-    this.#preferredVoiceName = preferences.voiceName;
-    this.#applyPreferencesToForm(preferences);
-    // Created after preferences are applied: its voice list callback needs the saved voice.
-    this.#narrator = new Narrator({ onVoicesChanged: () => this.#renderVoiceOptions() });
-    this.#renderVoiceOptions();
+    this.#applyPreferencesToForm(loadPreferences());
+    this.#renderOptionGroups();
     this.#renderStats();
     this.#bindEvents();
   }
@@ -86,22 +77,21 @@ class MeditationApp {
   destroy() {
     this.#listenersController.abort();
     this.#timer.stop();
+    this.#audioTrack.stop();
     this.#breathingGuide.stop();
-    this.#narrator?.dispose();
     this.#wakeLock.release();
     this.#bell.dispose();
   }
 
   #bindEvents() {
     const { signal } = this.#listenersController;
-    const { setupForm, voicePreviewButton, pauseButton, stopButton, backButton } = this.#elements;
+    const { setupForm, pauseButton, stopButton, backButton } = this.#elements;
 
     setupForm.addEventListener('submit', (event) => {
       event.preventDefault();
       this.#startSession();
     }, { signal });
     setupForm.addEventListener('change', () => this.#handleSetupChange(), { signal });
-    voicePreviewButton.addEventListener('click', () => this.#previewVoice(), { signal });
     pauseButton.addEventListener('click', () => this.#togglePause(), { signal });
     stopButton.addEventListener('click', () => this.#stopSessionEarly(), { signal });
     backButton.addEventListener('click', () => this.#showView('setup'), { signal });
@@ -122,51 +112,13 @@ class MeditationApp {
     this.#elements.meditationList.replaceChildren(fragment);
   }
 
-  #renderVoiceOptions() {
-    const { voiceSelect, voiceUnavailableNote } = this.#elements;
-    const voiceOptions = this.#narrator.voiceOptions;
-
-    const fragment = document.createDocumentFragment();
-    for (const { name, label } of voiceOptions) {
-      const optionElement = document.createElement('option');
-      optionElement.value = name;
-      optionElement.textContent = label;
-      fragment.append(optionElement);
-    }
-    voiceSelect.replaceChildren(fragment);
-
-    const isPreferredVoiceAvailable = voiceOptions.some((option) => option.name === this.#preferredVoiceName);
-    const selectedVoiceName = isPreferredVoiceAvailable ? this.#preferredVoiceName : this.#narrator.recommendedVoiceName;
-    if (selectedVoiceName !== null) {
-      voiceSelect.value = selectedVoiceName;
-      this.#narrator.selectVoice(selectedVoiceName);
-    }
-    voiceUnavailableNote.hidden = this.#narrator.hasFrenchVoice;
-    this.#renderOptionGroups();
-  }
-
   #renderOptionGroups() {
-    const { guidedOptions, freeOptions, voicePicker, setupForm } = this.#elements;
-    const isFreeMeditation = this.#readSelectedMeditation().id === FREE_MEDITATION_ID;
-    const isVoiceEnabled = setupForm.elements.namedItem('voiceEnabled').checked;
-    guidedOptions.hidden = isFreeMeditation;
-    freeOptions.hidden = !isFreeMeditation;
-    voicePicker.hidden = !isVoiceEnabled || this.#narrator === null || !this.#narrator.hasFrenchVoice;
+    this.#elements.freeOptions.hidden = this.#readSelectedMeditation().id !== FREE_MEDITATION_ID;
   }
 
   #handleSetupChange() {
-    const preferences = this.#readFormPreferences();
-    if (preferences.voiceName !== null) {
-      this.#preferredVoiceName = preferences.voiceName;
-      this.#narrator.selectVoice(preferences.voiceName);
-    }
-    savePreferences(preferences);
+    savePreferences(this.#readFormPreferences());
     this.#renderOptionGroups();
-  }
-
-  #previewVoice() {
-    this.#narrator.silence();
-    this.#narrator.speak(VOICE_PREVIEW_TEXT);
   }
 
   #readSelectedMeditation() {
@@ -177,15 +129,11 @@ class MeditationApp {
   #readFormPreferences() {
     const formData = new FormData(this.#elements.setupForm);
     const durationMinutes = Number(formData.get('duration'));
-    const selectedVoiceName = formData.get('voiceName');
     return {
       meditationId: this.#readSelectedMeditation().id,
       durationMinutes: durationMinutes > 0 ? durationMinutes : DEFAULT_PREFERENCES.durationMinutes,
       intervalMinutes: Number(formData.get('interval')) || 0,
       breathingGuideEnabled: formData.get('breathingGuide') !== null,
-      voiceEnabled: formData.get('voiceEnabled') !== null,
-      // A device without French voices has an empty list; keep the voice chosen on another visit.
-      voiceName: selectedVoiceName || this.#preferredVoiceName,
     };
   }
 
@@ -195,7 +143,6 @@ class MeditationApp {
     formControls.namedItem('duration').value = String(preferences.durationMinutes);
     formControls.namedItem('interval').value = String(preferences.intervalMinutes);
     formControls.namedItem('breathingGuide').checked = preferences.breathingGuideEnabled;
-    formControls.namedItem('voiceEnabled').checked = preferences.voiceEnabled;
   }
 
   #createSession(meditation, preferences) {
@@ -215,36 +162,59 @@ class MeditationApp {
       nextIntervalBellAtSeconds: intervalSeconds > 0 ? intervalSeconds : null,
       breathingMode,
       script: isGuided ? new GuidedScript(meditation.cues) : null,
-      isVoiceEnabled: isGuided && preferences.voiceEnabled,
+      usesAudioTrack: isGuided,
     };
   }
 
+  #activeClock() {
+    return this.#activeSession?.usesAudioTrack ? this.#audioTrack : this.#timer;
+  }
+
   async #startSession() {
+    this.#timer.stop();
+    this.#audioTrack.stop();
+    const session = this.#createSession(this.#readSelectedMeditation(), this.#readFormPreferences());
+    this.#activeSession = session;
+
+    // Started before the first await: browsers only allow playback inside the click itself.
+    const trackPlayback = session.usesAudioTrack
+      ? this.#audioTrack.start(audioTrackPath(session.meditation), session.durationSeconds)
+      : null;
+
     try {
-      const session = this.#createSession(this.#readSelectedMeditation(), this.#readFormPreferences());
-      this.#activeSession = session;
-
-      // Must run before the first await: iOS only unlocks speech inside the user gesture itself.
-      if (session.isVoiceEnabled) {
-        this.#narrator.unlock();
-      }
       await this.#bell.unlock();
-      this.#bell.ring();
-
       this.#elements.sessionTitle.textContent = session.meditation.title;
       this.#elements.cue.textContent = '';
+      this.#elements.clock.textContent = formatClock(session.durationSeconds);
       this.#showView('session');
       this.#renderPausedState(false);
       if (session.breathingMode !== null) {
         this.#breathingGuide.start(session.breathingMode);
       }
-      this.#timer.start(session.durationSeconds * 1000);
+      await this.#startClock(session, trackPlayback);
       await this.#wakeLock.acquire();
     } catch (error) {
       console.error('Impossible de démarrer la séance.', error);
+      this.#breathingGuide.stop();
       this.#activeSession = null;
       this.#showView('setup');
     }
+  }
+
+  async #startClock(session, trackPlayback) {
+    if (trackPlayback !== null) {
+      try {
+        await trackPlayback;
+        return;
+      } catch (error) {
+        // Offline or blocked file: the session still works with the written cues and the synthesized bell.
+        console.warn('Piste audio indisponible, consignes affichées seulement.', error);
+        this.#audioTrack.stop();
+        session.usesAudioTrack = false;
+      }
+    }
+    this.#bell.ring();
+    this.#timer.start(session.durationSeconds * 1000);
   }
 
   #handleTick({ remainingSeconds, elapsedSeconds }) {
@@ -254,14 +224,9 @@ class MeditationApp {
   }
 
   #presentDueCue(elapsedSeconds) {
-    const session = this.#activeSession;
-    const dueCue = session?.script?.takeLatestDueCue(elapsedSeconds) ?? null;
-    if (dueCue === null) {
-      return;
-    }
-    this.#elements.cue.textContent = dueCue.text;
-    if (session.isVoiceEnabled) {
-      this.#narrator.speak(dueCue.text);
+    const dueCue = this.#activeSession?.script?.takeLatestDueCue(elapsedSeconds) ?? null;
+    if (dueCue !== null) {
+      this.#elements.cue.textContent = dueCue.text;
     }
   }
 
@@ -279,20 +244,24 @@ class MeditationApp {
   }
 
   #handleComplete() {
-    if (this.#activeSession === null) {
+    const session = this.#activeSession;
+    if (session === null) {
       return;
     }
-    this.#bell.ring({ strikes: END_BELL_STRIKES });
-    this.#finishSession(this.#activeSession.durationSeconds);
+    // Audio tracks carry their own closing bells.
+    if (!session.usesAudioTrack) {
+      this.#bell.ring({ strikes: END_BELL_STRIKES });
+    }
+    this.#finishSession(session.durationSeconds);
   }
 
   #stopSessionEarly() {
     if (this.#activeSession === null) {
       return;
     }
-    const meditatedSeconds = this.#timer.elapsedSeconds;
-    this.#timer.stop();
-    this.#narrator.silence();
+    const clock = this.#activeClock();
+    const meditatedSeconds = clock.elapsedSeconds;
+    clock.stop();
     this.#finishSession(meditatedSeconds);
   }
 
@@ -314,19 +283,18 @@ class MeditationApp {
   }
 
   #togglePause() {
-    const session = this.#activeSession;
-    if (session === null) {
+    if (this.#activeSession === null) {
       return;
     }
-    if (this.#timer.isRunning) {
-      this.#timer.pause();
-      this.#narrator.silence();
+    const clock = this.#activeClock();
+    if (clock.isRunning) {
+      clock.pause();
       this.#breathingGuide.pause();
       this.#wakeLock.release();
       this.#renderPausedState(true);
       return;
     }
-    this.#timer.resume();
+    clock.resume();
     this.#breathingGuide.resume();
     this.#wakeLock.acquire();
     this.#renderPausedState(false);
@@ -347,7 +315,7 @@ class MeditationApp {
 
   // The browser drops the wake lock whenever the page is hidden; it must be re-requested on return.
   #handleVisibilityChange() {
-    if (document.visibilityState === 'visible' && this.#activeSession !== null && this.#timer.isRunning) {
+    if (document.visibilityState === 'visible' && this.#activeSession !== null && this.#activeClock().isRunning) {
       this.#wakeLock.acquire();
     }
   }
