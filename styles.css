@@ -1,0 +1,268 @@
+:root {
+  --color-background: #f4f1ea;
+  --color-surface: #ffffff;
+  --color-text: #2b3433;
+  --color-muted: #6f7a78;
+  --color-accent: #4f8a7b;
+  --color-accent-contrast: #ffffff;
+  --color-border: #ddd7cb;
+  --color-breath: rgba(79, 138, 123, 0.25);
+  --radius: 14px;
+  --phase-duration: 4000ms;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #1f2d2b;
+    --color-surface: #283836;
+    --color-text: #e9efe9;
+    --color-muted: #9fb0ac;
+    --color-accent: #8cc7b5;
+    --color-accent-contrast: #1f2d2b;
+    --color-border: #3a4c49;
+    --color-breath: rgba(140, 199, 181, 0.2);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+.app {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.view[hidden] {
+  display: none;
+}
+
+.header h1 {
+  margin: 0;
+  font-weight: 500;
+  font-size: 1.9rem;
+}
+
+.tagline {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+}
+
+.setup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field legend {
+  margin-bottom: 10px;
+  padding: 0;
+}
+
+.field--inline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chip span {
+  display: inline-block;
+  min-width: 44px;
+  padding: 8px 12px;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.chip input:checked + span {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.chip input:focus-visible + span {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+select {
+  padding: 6px 8px;
+  font: inherit;
+  color: inherit;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-accent);
+}
+
+.button {
+  padding: 12px 22px;
+  font: inherit;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.button--primary {
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.button--ghost {
+  border-color: transparent;
+  color: var(--color-muted);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.stats dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat dt {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.stat dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.view--session,
+.view--done {
+  align-items: center;
+  text-align: center;
+  padding-top: 24px;
+}
+
+.breath {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 260px;
+  height: 260px;
+}
+
+.breath__circle {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--color-breath);
+  border: 2px solid var(--color-accent);
+  transform: scale(0.55);
+  transition: transform var(--phase-duration) ease-in-out;
+}
+
+.breath__circle.is-expanded {
+  transform: scale(1);
+}
+
+.breath__label {
+  position: relative;
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--color-text);
+}
+
+.clock {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.clock.is-paused {
+  opacity: 0.5;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.view--done h2 {
+  margin: 0;
+  font-weight: 500;
+}
+
+.done-message {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breath__circle {
+    transition: none;
+  }
+}

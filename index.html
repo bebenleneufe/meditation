@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1f2d2b">
+  <title>Pleine conscience</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <main class="app" data-app>
+    <section class="view" data-view="setup">
+      <header class="header">
+        <h1>Pleine conscience</h1>
+        <p class="tagline">Un moment pour revenir à soi.</p>
+      </header>
+
+      <form class="setup-form" data-setup-form>
+        <fieldset class="field">
+          <legend>Durée (minutes)</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="duration" value="1"><span>1</span></label>
+            <label class="chip"><input type="radio" name="duration" value="3"><span>3</span></label>
+            <label class="chip"><input type="radio" name="duration" value="5"><span>5</span></label>
+            <label class="chip"><input type="radio" name="duration" value="10" checked><span>10</span></label>
+            <label class="chip"><input type="radio" name="duration" value="15"><span>15</span></label>
+            <label class="chip"><input type="radio" name="duration" value="20"><span>20</span></label>
+            <label class="chip"><input type="radio" name="duration" value="30"><span>30</span></label>
+          </div>
+        </fieldset>
+
+        <label class="field field--inline">
+          <span>Cloche d'intervalle</span>
+          <select name="interval">
+            <option value="0">Aucune</option>
+            <option value="1">Toutes les minutes</option>
+            <option value="2">Toutes les 2 min</option>
+            <option value="5">Toutes les 5 min</option>
+            <option value="10">Toutes les 10 min</option>
+          </select>
+        </label>
+
+        <label class="field field--inline toggle">
+          <span>Guide de respiration</span>
+          <input type="checkbox" name="breathingGuide" checked>
+        </label>
+
+        <button type="submit" class="button button--primary">Commencer</button>
+      </form>
+
+      <section class="stats" aria-label="Ma pratique">
+        <dl>
+          <div class="stat"><dt>Séances</dt><dd data-stat="sessions">0</dd></div>
+          <div class="stat"><dt>Minutes</dt><dd data-stat="minutes">0</dd></div>
+          <div class="stat"><dt>Jours d'affilée</dt><dd data-stat="streak">0</dd></div>
+        </dl>
+      </section>
+    </section>
+
+    <section class="view view--session" data-view="session" hidden>
+      <div class="breath">
+        <div class="breath__circle" data-breath-circle></div>
+        <p class="breath__label" data-breath-label aria-live="polite"></p>
+      </div>
+      <p class="clock" data-clock>10:00</p>
+      <div class="controls">
+        <button type="button" class="button" data-pause-button>Pause</button>
+        <button type="button" class="button button--ghost" data-stop-button>Terminer</button>
+      </div>
+      <p class="hint">Espace : pause · Échap : terminer</p>
+    </section>
+
+    <section class="view view--done" data-view="done" hidden>
+      <h2>Séance terminée</h2>
+      <p class="done-message" data-done-message></p>
+      <button type="button" class="button button--primary" data-back-button>Retour</button>
+    </section>
+  </main>
+</body>
+</html>
