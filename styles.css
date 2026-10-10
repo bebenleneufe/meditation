@@ -145,6 +145,22 @@ body {
   opacity: 0.35;
 }
 
+.mascot__accessory {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.symbols {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 .mascot--hero {
   width: 112px;
   animation: float 6s ease-in-out infinite;
@@ -194,6 +210,29 @@ body {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.stats:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 20px;
+}
+
+.stats__more {
+  grid-column: 1 / -1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: right;
 }
 
 .stat {
@@ -580,6 +619,303 @@ select {
   color: var(--muted);
   background: transparent;
   border-radius: 999px;
+}
+
+/* ---------- Progress ---------- */
+
+.progress-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.button--back {
+  padding: 8px 14px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border-radius: 999px;
+}
+
+.progress-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.8rem;
+}
+
+.records {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.record {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  background: var(--c-soft);
+  border-radius: 18px;
+}
+
+.record__value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.8rem;
+  line-height: 1.1;
+  color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.record__label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calendar__month {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  text-transform: capitalize;
+}
+
+.calendar__nav {
+  width: 36px;
+  height: 36px;
+  font: inherit;
+  font-size: 1.3rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.calendar__nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.calendar__nav:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.calendar__weekdays,
+.calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  text-align: center;
+}
+
+.calendar__weekdays {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.calendar__day {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  border-radius: 50%;
+}
+
+.calendar__day.is-practiced {
+  font-weight: 600;
+  background: var(--c-soft);
+  color: var(--c-text);
+}
+
+.calendar__day.is-long {
+  background: var(--c);
+  color: var(--face);
+}
+
+.calendar__day.is-today {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.calendar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.calendar__swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--c-soft);
+}
+
+.calendar__swatch--long {
+  margin-left: 8px;
+  background: var(--c);
+}
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--bg);
+  border: 2px solid transparent;
+  border-radius: 18px;
+}
+
+.badge__icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 4px;
+  color: var(--muted);
+  background: var(--line);
+  border-radius: 50%;
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.badge__icon svg {
+  width: 34px;
+  height: 34px;
+  overflow: visible;
+}
+
+/* Accessory badges show a whole mini mascot, which needs the full circle. */
+.badge__icon svg[viewBox="0 0 100 100"] {
+  width: 46px;
+  height: 46px;
+}
+
+.badge.is-unlocked .badge__icon {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg));
+  filter: none;
+  opacity: 1;
+}
+
+.badge.is-worn {
+  border-color: var(--accent);
+}
+
+.badge__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.badge__description,
+.badge__count {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.badge__progress {
+  width: 100%;
+  height: 6px;
+  margin-top: 4px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.badge__progress::before {
+  content: "";
+  display: block;
+  width: calc(var(--fill, 0) * 100%);
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+}
+
+.badge__wear {
+  margin-top: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.badge.is-worn .badge__wear {
+  color: var(--ink);
+  background: var(--line);
+}
+
+.badge__wear:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.new-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 340px);
+}
+
+.new-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  text-align: left;
+  background: var(--surface);
+  border-radius: 18px;
+}
+
+.new-badge svg {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+  overflow: visible;
+}
+
+.new-badge__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.new-badge__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ink);
 }
 
 /* ---------- Session & end scenes ---------- */

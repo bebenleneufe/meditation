@@ -2,7 +2,7 @@
 // with the cache as the offline fallback. Audio is cached whole after a first
 // play, then served in byte ranges: iOS refuses to play media without them.
 
-const SHELL_CACHE = 'shell-v1';
+const SHELL_CACHE = 'shell-v2';
 const AUDIO_CACHE = 'audio-v1';
 const FONT_CACHE = 'fonts-v1';
 const KNOWN_CACHES = new Set([SHELL_CACHE, AUDIO_CACHE, FONT_CACHE]);
@@ -15,6 +15,7 @@ const SHELL_FILES = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './js/app.js',
+  './js/achievements.js',
   './js/ambience.js',
   './js/audio-track.js',
   './js/bell.js',
@@ -24,6 +25,7 @@ const SHELL_FILES = [
   './js/history.js',
   './js/meditations.js',
   './js/preferences.js',
+  './js/progress-view.js',
   './js/reminder.js',
   './js/storage.js',
   './js/timer.js',

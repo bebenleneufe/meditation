@@ -7,6 +7,8 @@ import { GuidedScript } from './guided-script.js';
 import { SessionHistory } from './history.js';
 import { ScreenWakeLock } from './wake-lock.js';
 import { buildDailyReminderCalendar, downloadCalendarFile, isValidReminderTime } from './reminder.js';
+import { ACCESSORIES, findNewlyUnlockedBadges, listUnlockedAccessories } from './achievements.js';
+import { ProgressView, createBadgeIcon } from './progress-view.js';
 import { ALL_MEDITATIONS, CATEGORIES, FREE_MEDITATION_ID, audioTrackPath, findMeditation } from './meditations.js';
 import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences.js';
 import { describeDuration, formatClock } from './format.js';
@@ -48,6 +50,8 @@ class MeditationApp {
   #wakeLock = new ScreenWakeLock();
   #listenersController = new AbortController();
   #activeSession = null;
+  #progressView;
+  #wornAccessory = null;
 
   constructor(rootElement, optionTemplate) {
     this.#elements = {
@@ -56,6 +60,10 @@ class MeditationApp {
       sessionView: requireElement(rootElement, '[data-view="session"]'),
       doneView: requireElement(rootElement, '[data-view="done"]'),
       greeting: requireElement(rootElement, '[data-greeting]'),
+      openProgressButton: requireElement(rootElement, '[data-open-progress]'),
+      progressBackButton: requireElement(rootElement, '[data-progress-back]'),
+      newBadges: requireElement(rootElement, '[data-new-badges]'),
+      accessoryUses: rootElement.querySelectorAll('[data-accessory-use]'),
       startDetail: requireElement(rootElement, '[data-start-detail]'),
       progressRing: requireElement(rootElement, '[data-progress-ring]'),
       setupForm: requireElement(rootElement, '[data-setup-form]'),
@@ -89,13 +97,21 @@ class MeditationApp {
       labelElement: requireElement(rootElement, '[data-breath-label]'),
       onPhaseChange: (phase) => this.#handleBreathingPhase(phase),
     });
+    this.#progressView = new ProgressView({
+      rootElement: requireElement(rootElement, '[data-view="progress"]'),
+      onToggleAccessory: (accessoryId) => this.#toggleAccessory(accessoryId),
+    });
   }
 
   init() {
     this.#elements.greeting.textContent = greetingForHour(new Date().getHours());
     this.#renderMeditationOptions();
     this.#renderAmbienceOptions();
-    this.#applyPreferencesToForm(loadPreferences());
+    const preferences = loadPreferences();
+    this.#applyPreferencesToForm(preferences);
+    const unlockedAccessories = listUnlockedAccessories(this.#history.getStats());
+    this.#wornAccessory = unlockedAccessories.includes(preferences.wornAccessory) ? preferences.wornAccessory : null;
+    this.#renderWornAccessory();
     this.#renderOptionGroups();
     this.#renderStats();
     this.#bindEvents();
@@ -106,6 +122,7 @@ class MeditationApp {
     this.#timer.stop();
     this.#audioTrack.stop();
     this.#breathingGuide.stop();
+    this.#progressView.destroy();
     this.#wakeLock.release();
     this.#bell.dispose();
     this.#ambience.dispose();
@@ -125,6 +142,8 @@ class MeditationApp {
     this.#elements.ambienceToggle.addEventListener('click', () => this.#toggleAmbienceMute(), { signal });
     this.#elements.reminderButton.addEventListener('click', () => this.#exportDailyReminder(), { signal });
     backButton.addEventListener('click', () => this.#showView('setup'), { signal });
+    this.#elements.openProgressButton.addEventListener('click', () => this.#openProgress(), { signal });
+    this.#elements.progressBackButton.addEventListener('click', () => this.#showView('setup'), { signal });
     document.addEventListener('keydown', (event) => this.#handleKeydown(event), { signal });
     document.addEventListener('visibilitychange', () => this.#handleVisibilityChange(), { signal });
   }
@@ -187,8 +206,58 @@ class MeditationApp {
   }
 
   #handleSetupChange() {
-    savePreferences(this.#readFormPreferences());
+    this.#savePreferences();
     this.#renderOptionGroups();
+  }
+
+  // Some preferences live outside the form (the worn accessory), so both sources are merged.
+  #savePreferences() {
+    savePreferences({ ...this.#readFormPreferences(), wornAccessory: this.#wornAccessory });
+  }
+
+  #openProgress() {
+    this.#progressView.render(this.#history.getStats(), this.#wornAccessory);
+    this.#showView('progress');
+    window.scrollTo({ top: 0 });
+  }
+
+  #toggleAccessory(accessoryId) {
+    const stats = this.#history.getStats();
+    if (!listUnlockedAccessories(stats).includes(accessoryId)) {
+      return;
+    }
+    this.#wornAccessory = this.#wornAccessory === accessoryId ? null : accessoryId;
+    this.#savePreferences();
+    this.#renderWornAccessory();
+    this.#progressView.render(stats, this.#wornAccessory);
+  }
+
+  #renderWornAccessory() {
+    for (const useElement of this.#elements.accessoryUses) {
+      useElement.setAttribute('href', this.#wornAccessory === null ? '' : `#accessory-${this.#wornAccessory}`);
+      // SVG elements have no "hidden" property: the attribute itself must be toggled.
+      useElement.parentElement.toggleAttribute('hidden', this.#wornAccessory === null);
+    }
+  }
+
+  #renderNewBadges(newBadges) {
+    const fragment = document.createDocumentFragment();
+    for (const badge of newBadges) {
+      const badgeElement = document.createElement('div');
+      const textElement = document.createElement('span');
+      const titleElement = document.createElement('span');
+      badgeElement.className = 'new-badge';
+      textElement.className = 'new-badge__text';
+      titleElement.className = 'new-badge__title';
+      titleElement.textContent = `Nouveau badge : ${badge.title}`;
+      textElement.append(titleElement, badge.accessory === undefined
+        ? badge.description
+        : `${badge.description} La mascotte porte maintenant : ${ACCESSORIES[badge.accessory].toLowerCase()}.`);
+      badgeElement.append(createBadgeIcon(badge), textElement);
+      fragment.append(badgeElement);
+    }
+    this.#elements.newBadges.replaceChildren(fragment);
+    this.#elements.newBadges.hidden = newBadges.length === 0;
   }
 
   #readSelectedMeditation() {
@@ -371,10 +440,15 @@ class MeditationApp {
     this.#activeSession = null;
 
     const isRecorded = meditatedSeconds >= MINIMUM_RECORDED_SECONDS;
+    let newBadges = [];
     if (isRecorded) {
+      const statsBefore = this.#history.getStats();
       this.#history.record({ durationSeconds: meditatedSeconds, meditationId: meditation.id });
+      newBadges = findNewlyUnlockedBadges(statsBefore, this.#history.getStats());
+      this.#wearNewestAccessory(newBadges);
       this.#renderStats();
     }
+    this.#renderNewBadges(newBadges);
     // A sleep session must not end on bouncing confetti: the screen stays still and dim.
     const isSleepSession = meditation.category === 'sommeil';
     this.#elements.doneView.classList.toggle('is-quiet', isSleepSession);
@@ -383,6 +457,16 @@ class MeditationApp {
       ? `« ${meditation.title} » : ${describeDuration(meditatedSeconds)} de pratique.`
       : "Séance de moins d'une minute : elle n'a pas été enregistrée.";
     this.#showView('done');
+  }
+
+  // A freshly earned accessory is put on straight away: seeing it is the reward.
+  #wearNewestAccessory(newBadges) {
+    const newestAccessory = newBadges.filter((badge) => badge.accessory !== undefined).at(-1)?.accessory;
+    if (newestAccessory !== undefined) {
+      this.#wornAccessory = newestAccessory;
+      this.#savePreferences();
+      this.#renderWornAccessory();
+    }
   }
 
   #describeDoneTitle(isRecorded, isSleepSession) {

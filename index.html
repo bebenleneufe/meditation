@@ -18,6 +18,68 @@
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
+  <svg class="symbols" aria-hidden="true" focusable="false">
+    <symbol id="mini-mascot" viewBox="0 0 100 100">
+      <path d="M50 16c24 0 42 14 42 40s-19 38-43 38S8 80 8 56s18-40 42-40z" fill="currentColor"></path>
+      <g fill="none" stroke="#2b2340" stroke-width="5" stroke-linecap="round">
+        <path d="M30 52q6 6 12 0"></path>
+        <path d="M58 52q6 6 12 0"></path>
+        <path d="M44 64q6 5 12 0"></path>
+      </g>
+    </symbol>
+    <symbol id="accessory-fleur" viewBox="0 0 100 100">
+      <g transform="translate(78 16)">
+        <circle cx="0" cy="-8" r="7" fill="#ffffff"></circle>
+        <circle cx="7.6" cy="-2.5" r="7" fill="#ffffff"></circle>
+        <circle cx="4.7" cy="6.5" r="7" fill="#ffffff"></circle>
+        <circle cx="-4.7" cy="6.5" r="7" fill="#ffffff"></circle>
+        <circle cx="-7.6" cy="-2.5" r="7" fill="#ffffff"></circle>
+        <circle r="5.5" fill="#ffd23f"></circle>
+      </g>
+    </symbol>
+    <symbol id="accessory-bonnet" viewBox="0 0 100 100">
+      <path d="M14 34 C18 2 82 2 86 34 Z" fill="#e8505b"></path>
+      <rect x="10" y="27" width="80" height="13" rx="6.5" fill="#c43d47"></rect>
+      <circle cx="50" cy="5" r="8" fill="#ffffff"></circle>
+    </symbol>
+    <symbol id="accessory-couronne" viewBox="0 0 100 100">
+      <path d="M28 26 L31 4 L41 16 L50 0 L59 16 L69 4 L72 26 Z" fill="#ffd23f" stroke="#e0a800" stroke-width="2" stroke-linejoin="round"></path>
+      <circle cx="50" cy="18" r="3.5" fill="#e8505b"></circle>
+    </symbol>
+    <symbol id="accessory-echarpe" viewBox="0 0 100 100">
+      <path d="M10 72 Q50 86 90 72 L92 83 Q50 98 8 83 Z" fill="#4a90e2"></path>
+      <path d="M62 84 L75 81 L79 100 L65 100 Z" fill="#2867b3"></path>
+    </symbol>
+    <symbol id="accessory-lunettes" viewBox="0 0 100 100">
+      <rect x="22" y="43" width="26" height="16" rx="7" fill="#2b2340"></rect>
+      <rect x="52" y="43" width="26" height="16" rx="7" fill="#2b2340"></rect>
+      <path d="M48 49 h4" stroke="#2b2340" stroke-width="3"></path>
+      <path d="M27 47 h7" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.6"></path>
+    </symbol>
+    <symbol id="accessory-casque" viewBox="0 0 100 100">
+      <path d="M14 50 Q14 6 50 6 Q86 6 86 50" fill="none" stroke="#2b2340" stroke-width="6" stroke-linecap="round"></path>
+      <rect x="4" y="40" width="16" height="26" rx="7" fill="#ff6f61"></rect>
+      <rect x="80" y="40" width="16" height="26" rx="7" fill="#ff6f61"></rect>
+    </symbol>
+    <symbol id="badge-flame" viewBox="0 0 24 24">
+      <path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-6 1-9.5z" fill="currentColor"></path>
+    </symbol>
+    <symbol id="badge-check" viewBox="0 0 24 24">
+      <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm-1.2 13.2L6.6 12l1.4-1.4 2.8 2.8 5.2-5.2L17.4 9.6z" fill="currentColor"></path>
+    </symbol>
+    <symbol id="badge-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4.5" fill="currentColor"></circle>
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+    </symbol>
+    <symbol id="badge-moon" viewBox="0 0 24 24">
+      <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="currentColor"></path>
+    </symbol>
+    <symbol id="badge-compass" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"></circle>
+      <path d="M15.5 8.5l-2 5-5 2 2-5z" fill="currentColor"></path>
+    </symbol>
+  </svg>
+
   <main class="app" data-app>
     <section class="view view--setup" data-view="setup">
       <header class="hero">
@@ -35,26 +97,28 @@
             <circle class="mascot__cheek" cx="20" cy="44" r="7"></circle>
             <circle class="mascot__cheek" cx="100" cy="44" r="7"></circle>
           </svg>
+          <svg class="mascot__accessory" viewBox="0 0 100 100" aria-hidden="true" hidden><use data-accessory-use href=""></use></svg>
         </div>
       </header>
 
-      <section class="stats" aria-label="Ma pratique">
-        <div class="stat" data-color="orange">
+      <button type="button" class="stats" data-open-progress>
+        <span class="stat" data-color="orange">
           <svg class="stat__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-6 1-9.5z"></path></svg>
           <span class="stat__value" data-stat="streak">0</span>
           <span class="stat__label">jours d'affilée</span>
-        </div>
-        <div class="stat" data-color="blue">
+        </span>
+        <span class="stat" data-color="blue">
           <svg class="stat__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm1 4v4.6l3.2 3.2-1.4 1.4L11 12.4V7z"></path></svg>
           <span class="stat__value" data-stat="minutes">0</span>
           <span class="stat__label">minutes</span>
-        </div>
-        <div class="stat" data-color="mint">
+        </span>
+        <span class="stat" data-color="mint">
           <svg class="stat__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm-1.2 13.2L6.6 12l1.4-1.4 2.8 2.8 5.2-5.2L17.4 9.6z"></path></svg>
           <span class="stat__value" data-stat="sessions">0</span>
           <span class="stat__label">séances</span>
-        </div>
-      </section>
+        </span>
+        <span class="stats__more">Voir mes progrès et mes badges ›</span>
+      </button>
 
       <form class="setup-form" data-setup-form>
         <fieldset class="picker">
@@ -119,6 +183,37 @@
       </form>
     </section>
 
+    <section class="view view--progress" data-view="progress" hidden>
+      <header class="progress-header">
+        <button type="button" class="button button--back" data-progress-back>‹ Retour</button>
+        <h2 class="progress-title">Mes progrès</h2>
+      </header>
+
+      <div class="records">
+        <div class="record" data-color="orange"><span class="record__value" data-record="streak">0</span><span class="record__label">jours d'affilée</span></div>
+        <div class="record" data-color="pink"><span class="record__value" data-record="longest">0</span><span class="record__label">meilleure série</span></div>
+        <div class="record" data-color="blue"><span class="record__value" data-record="minutes">0</span><span class="record__label">minutes au total</span></div>
+        <div class="record" data-color="mint"><span class="record__value" data-record="sessions">0</span><span class="record__label">séances</span></div>
+      </div>
+
+      <section class="panel calendar" data-color="orange" aria-label="Calendrier de pratique">
+        <div class="calendar__header">
+          <button type="button" class="calendar__nav" data-calendar-previous aria-label="Mois précédent">‹</button>
+          <h3 class="calendar__month" data-calendar-month></h3>
+          <button type="button" class="calendar__nav" data-calendar-next aria-label="Mois suivant">›</button>
+        </div>
+        <div class="calendar__weekdays" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <div class="calendar__grid" role="list" data-calendar-grid></div>
+        <p class="calendar__legend"><span class="calendar__swatch"></span> séance <span class="calendar__swatch calendar__swatch--long"></span> 15 min ou plus</p>
+      </section>
+
+      <section class="panel">
+        <h3 class="section-title">Badges</h3>
+        <p class="note">Certains badges offrent un accessoire à la mascotte : touchez « Porter » pour le lui mettre.</p>
+        <div class="badge-grid" role="list" data-badge-grid></div>
+      </section>
+    </section>
+
     <section class="view view--session scene" data-view="session" hidden>
       <div class="scene__top">
         <p class="scene__title" data-session-title></p>
@@ -139,6 +234,7 @@
             <circle class="mascot__cheek" cx="20" cy="44" r="7"></circle>
             <circle class="mascot__cheek" cx="100" cy="44" r="7"></circle>
           </svg>
+          <svg class="mascot__accessory" viewBox="0 0 100 100" aria-hidden="true" hidden><use data-accessory-use href=""></use></svg>
         </div>
       </div>
 
@@ -166,9 +262,11 @@
           <circle class="mascot__cheek" cx="20" cy="46" r="7"></circle>
           <circle class="mascot__cheek" cx="100" cy="46" r="7"></circle>
         </svg>
+          <svg class="mascot__accessory" viewBox="0 0 100 100" aria-hidden="true" hidden><use data-accessory-use href=""></use></svg>
       </div>
       <h2 class="done__title" data-done-title>Bravo !</h2>
       <p class="done__message" data-done-message></p>
+      <div class="new-badges" data-new-badges hidden></div>
       <button type="button" class="button button--start" data-back-button>Retour</button>
     </section>
   </main>

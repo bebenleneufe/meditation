@@ -1,6 +1,7 @@
 import { readJson, writeJson } from './storage.js';
 import { isKnownAmbience } from './ambience.js';
 import { isValidReminderTime } from './reminder.js';
+import { isKnownAccessory } from './achievements.js';
 
 const PREFERENCES_KEY = 'meditation.preferences.v1';
 
@@ -12,6 +13,7 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   ambienceId: 'nappe',
   ambienceVolume: 0.5,
   reminderTime: '08:00',
+  wornAccessory: null,
 });
 
 function isPositiveNumber(candidate) {
@@ -49,6 +51,9 @@ function sanitizePreferences(storedPreferences) {
   }
   if (isValidReminderTime(storedPreferences.reminderTime)) {
     sanitizedPreferences.reminderTime = storedPreferences.reminderTime;
+  }
+  if (isKnownAccessory(storedPreferences.wornAccessory)) {
+    sanitizedPreferences.wornAccessory = storedPreferences.wornAccessory;
   }
   return sanitizedPreferences;
 }
