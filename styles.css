@@ -53,6 +53,11 @@
 [data-color="blue"] { --c: #4a90e2; --c-deep: #2867b3; }
 [data-color="pink"] { --c: #f2709c; --c-deep: #c9466f; }
 [data-color="mint"] { --c: #3dbe9a; --c-deep: #1e8c6d; }
+[data-color="sky"] { --c: #38b6d8; --c-deep: #13809e; }
+[data-color="coral"] { --c: #ff6f61; --c-deep: #d0473a; }
+[data-color="green"] { --c: #79c25a; --c-deep: #4c8f31; }
+[data-color="sand"] { --c: #e8a96a; --c-deep: #b0733a; }
+[data-color="indigo"] { --c: #6c74e8; --c-deep: #4249b8; }
 [data-color] {
   --c-soft: color-mix(in srgb, var(--c) 22%, var(--bg));
   --c-text: var(--c-deep);
@@ -243,6 +248,26 @@ body {
   font-size: 1.35rem;
 }
 
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.category {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.category__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
 .meditation-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -322,6 +347,9 @@ body {
 .meditation-card:nth-child(2) .mascot__body { border-radius: 50% 50% 46% 54% / 60% 60% 40% 40%; }
 .meditation-card:nth-child(3) .mascot__body { border-radius: 42% 58% 38% 62% / 48% 40% 60% 52%; }
 .meditation-card:nth-child(4) .mascot__body { border-radius: 50%; }
+.meditation-card:nth-child(7) .mascot__body { border-radius: 46% 54% 60% 40% / 56% 44% 56% 44%; }
+.meditation-card:nth-child(8) .mascot__body { border-radius: 60% 40% 40% 60% / 50% 50% 50% 50%; }
+.meditation-card:nth-child(9) .mascot__body { border-radius: 52% 48% 44% 56% / 40% 52% 48% 60%; }
 .meditation-card:nth-child(5) .mascot__body { border-radius: 64% 36% 56% 44% / 44% 56% 44% 56%; }
 .meditation-card:nth-child(6) .mascot__body { border-radius: 30% 30% 50% 50% / 30% 30% 70% 70%; }
 
@@ -733,6 +761,15 @@ select {
 
 .view--done .button--start {
   max-width: 320px;
+}
+
+.view--done.is-quiet .confetti {
+  display: none;
+}
+
+.view--done.is-quiet .mascot--done {
+  animation: none;
+  opacity: 0.85;
 }
 
 .confetti span {

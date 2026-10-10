@@ -57,6 +57,10 @@ END_BELL_STRIKES = 3
 END_BELL_SPACING_SECONDS = 2.5
 TRAILING_SILENCE_SECONDS = 1.0
 
+# Sleep sessions: the voice drifts down from this point of the session to the final level.
+VOICE_FADE_START_FRACTION = 0.4
+VOICE_FADE_END_DECIBELS = -10.0
+
 MP3_VBR_QUALITY = "4"
 
 
@@ -195,11 +199,20 @@ def mix_at(track, clip, start_seconds, sample_rate):
     track[start_index:start_index + len(clip)] += clip
 
 
+def voice_gain_at(meditation, at_seconds, session_seconds):
+    if not meditation.get("voiceFade", False):
+        return 1.0
+    fade_start_seconds = session_seconds * VOICE_FADE_START_FRACTION
+    progress = min(1.0, max(0.0, (at_seconds - fade_start_seconds) / (session_seconds - fade_start_seconds)))
+    return 10 ** (VOICE_FADE_END_DECIBELS * progress / 20)
+
+
 def build_track(meditation, narrator):
     sample_rate = narrator.sample_rate
     session_seconds = meditation["durationMinutes"] * 60
     bell = synthesize_bell(sample_rate)
-    end_bells_seconds = (END_BELL_STRIKES - 1) * END_BELL_SPACING_SECONDS + len(bell) / sample_rate
+    has_closing_bells = meditation.get("closingBells", True)
+    end_bells_seconds = (END_BELL_STRIKES - 1) * END_BELL_SPACING_SECONDS + len(bell) / sample_rate if has_closing_bells else 0
     track = np.zeros(int((session_seconds + end_bells_seconds + TRAILING_SILENCE_SECONDS) * sample_rate), dtype=np.float32)
 
     timing_problems = []
@@ -214,10 +227,10 @@ def build_track(meditation, narrator):
                 f"  {cue['atSeconds']}s ({len(speech) / sample_rate:.1f}s de voix) déborde : "
                 f"il reste {free_seconds:.1f}s avant {next_cue_seconds}s"
             )
-        mix_at(track, speech, cue["atSeconds"], sample_rate)
+        mix_at(track, speech * voice_gain_at(meditation, cue["atSeconds"], session_seconds), cue["atSeconds"], sample_rate)
 
     mix_at(track, bell, 0, sample_rate)
-    for strike_index in range(END_BELL_STRIKES):
+    for strike_index in range(END_BELL_STRIKES if has_closing_bells else 0):
         mix_at(track, bell, session_seconds + strike_index * END_BELL_SPACING_SECONDS, sample_rate)
 
     peak = np.abs(track).max()

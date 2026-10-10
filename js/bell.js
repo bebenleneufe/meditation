@@ -2,6 +2,8 @@ const BOWL_FUNDAMENTAL_HZ = 196;
 const STRIKE_SPACING_SECONDS = 2.5;
 const SCHEDULING_LEAD_SECONDS = 0.05;
 const SILENT_GAIN = 0.0001;
+const BREATH_TONE_SECONDS = 0.9;
+const BREATH_TONE_PEAK = 0.12;
 
 // Inharmonic partial ratios mimic a singing bowl; a pure harmonic series would
 // sound like an electronic beep. Higher partials fade faster, like real metal.
@@ -41,6 +43,32 @@ export class Bell {
     for (let strikeIndex = 0; strikeIndex < strikes; strikeIndex += 1) {
       this.#scheduleStrike(firstStrikeTime + strikeIndex * STRIKE_SPACING_SECONDS, volume);
     }
+  }
+
+  // A soft gliding tone marks breathing phases, so an exercise can be followed with eyes closed:
+  // rising for an inhale, falling for an exhale.
+  playBreathTone(direction) {
+    if (this.#audioContext === null || this.#audioContext.state !== 'running') {
+      return;
+    }
+    const audioContext = this.#audioContext;
+    const startTime = audioContext.currentTime + SCHEDULING_LEAD_SECONDS;
+    const [fromHz, toHz] = direction === 'rise' ? [262, 330] : [330, 262];
+    const oscillator = audioContext.createOscillator();
+    const envelope = audioContext.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(fromHz, startTime);
+    oscillator.frequency.exponentialRampToValueAtTime(toHz, startTime + BREATH_TONE_SECONDS);
+    envelope.gain.setValueAtTime(SILENT_GAIN, startTime);
+    envelope.gain.exponentialRampToValueAtTime(BREATH_TONE_PEAK, startTime + 0.08);
+    envelope.gain.exponentialRampToValueAtTime(SILENT_GAIN, startTime + BREATH_TONE_SECONDS);
+    oscillator.connect(envelope).connect(audioContext.destination);
+    oscillator.addEventListener('ended', () => {
+      oscillator.disconnect();
+      envelope.disconnect();
+    }, { once: true });
+    oscillator.start(startTime);
+    oscillator.stop(startTime + BREATH_TONE_SECONDS + 0.05);
   }
 
   async dispose() {

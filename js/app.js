@@ -2,12 +2,12 @@ import { MeditationTimer } from './timer.js';
 import { AudioTrackPlayer } from './audio-track.js';
 import { AMBIENCES, AmbiencePlayer, NO_AMBIENCE_ID } from './ambience.js';
 import { Bell } from './bell.js';
-import { BREATHING_MODES, BreathingGuide } from './breathing.js';
+import { BREATHING_MODES, BreathingGuide, DEFAULT_BREATHING_PATTERN } from './breathing.js';
 import { GuidedScript } from './guided-script.js';
 import { SessionHistory } from './history.js';
 import { ScreenWakeLock } from './wake-lock.js';
 import { buildDailyReminderCalendar, downloadCalendarFile, isValidReminderTime } from './reminder.js';
-import { ALL_MEDITATIONS, FREE_MEDITATION_ID, audioTrackPath, findMeditation } from './meditations.js';
+import { ALL_MEDITATIONS, CATEGORIES, FREE_MEDITATION_ID, audioTrackPath, findMeditation } from './meditations.js';
 import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences.js';
 import { describeDuration, formatClock } from './format.js';
 
@@ -87,6 +87,7 @@ class MeditationApp {
     this.#breathingGuide = new BreathingGuide({
       circleElement: requireElement(rootElement, '[data-breath-circle]'),
       labelElement: requireElement(rootElement, '[data-breath-label]'),
+      onPhaseChange: (phase) => this.#handleBreathingPhase(phase),
     });
   }
 
@@ -130,16 +131,31 @@ class MeditationApp {
 
   #renderMeditationOptions() {
     const fragment = document.createDocumentFragment();
-    for (const meditation of ALL_MEDITATIONS) {
-      const optionElement = this.#elements.optionTemplate.content.firstElementChild.cloneNode(true);
-      optionElement.dataset.color = meditation.color;
-      requireElement(optionElement, 'input').value = meditation.id;
-      requireElement(optionElement, '.meditation-card__title').textContent = meditation.title;
-      requireElement(optionElement, '.meditation-card__duration').textContent = describeMeditationLength(meditation);
-      requireElement(optionElement, '.meditation-card__summary').textContent = meditation.summary;
-      fragment.append(optionElement);
+    for (const category of CATEGORIES) {
+      const sectionElement = document.createElement('section');
+      const titleElement = document.createElement('h3');
+      const gridElement = document.createElement('div');
+      sectionElement.className = 'category';
+      titleElement.className = 'category__title';
+      titleElement.textContent = category.title;
+      gridElement.className = 'meditation-grid';
+      for (const meditation of ALL_MEDITATIONS.filter((candidate) => candidate.category === category.id)) {
+        gridElement.append(this.#createMeditationCard(meditation));
+      }
+      sectionElement.append(titleElement, gridElement);
+      fragment.append(sectionElement);
     }
     this.#elements.meditationList.replaceChildren(fragment);
+  }
+
+  #createMeditationCard(meditation) {
+    const cardElement = this.#elements.optionTemplate.content.firstElementChild.cloneNode(true);
+    cardElement.dataset.color = meditation.color;
+    requireElement(cardElement, 'input').value = meditation.id;
+    requireElement(cardElement, '.meditation-card__title').textContent = meditation.title;
+    requireElement(cardElement, '.meditation-card__duration').textContent = describeMeditationLength(meditation);
+    requireElement(cardElement, '.meditation-card__summary').textContent = meditation.summary;
+    return cardElement;
   }
 
   #renderAmbienceOptions() {
@@ -208,13 +224,15 @@ class MeditationApp {
   }
 
   #createSession(meditation, preferences) {
-    const isGuided = meditation.id !== FREE_MEDITATION_ID;
-    const durationMinutes = isGuided ? meditation.durationMinutes : preferences.durationMinutes;
-    const intervalSeconds = isGuided ? 0 : preferences.intervalMinutes * 60;
+    const isGuided = meditation.kind === 'guided';
+    const isBreathingExercise = meditation.kind === 'breathing';
+    const isFree = meditation.kind === 'free';
+    const durationMinutes = isFree ? preferences.durationMinutes : meditation.durationMinutes;
+    const intervalSeconds = isFree ? preferences.intervalMinutes * 60 : 0;
     let breathingMode = null;
     if (isGuided) {
       breathingMode = BREATHING_MODES.ambient;
-    } else if (preferences.breathingGuideEnabled) {
+    } else if (isBreathingExercise || preferences.breathingGuideEnabled) {
       breathingMode = BREATHING_MODES.paced;
     }
     return {
@@ -223,9 +241,17 @@ class MeditationApp {
       intervalSeconds,
       nextIntervalBellAtSeconds: intervalSeconds > 0 ? intervalSeconds : null,
       breathingMode,
+      breathingPattern: isBreathingExercise ? meditation.pattern : DEFAULT_BREATHING_PATTERN,
+      playsBreathTones: isBreathingExercise,
       script: isGuided ? new GuidedScript(meditation.cues) : null,
       usesAudioTrack: isGuided,
     };
+  }
+
+  #handleBreathingPhase(phase) {
+    if (this.#activeSession?.playsBreathTones && phase.tone !== null) {
+      this.#bell.playBreathTone(phase.tone);
+    }
   }
 
   #activeClock() {
@@ -257,7 +283,7 @@ class MeditationApp {
       this.#showView('session');
       this.#renderPausedState(false);
       if (session.breathingMode !== null) {
-        this.#breathingGuide.start(session.breathingMode);
+        this.#breathingGuide.start(session.breathingMode, session.breathingPattern);
       }
       await this.#startClock(session, trackPlayback);
       await this.#wakeLock.acquire();
@@ -349,11 +375,21 @@ class MeditationApp {
       this.#history.record({ durationSeconds: meditatedSeconds, meditationId: meditation.id });
       this.#renderStats();
     }
-    this.#elements.doneTitle.textContent = isRecorded ? 'Bravo !' : 'À bientôt';
+    // A sleep session must not end on bouncing confetti: the screen stays still and dim.
+    const isSleepSession = meditation.category === 'sommeil';
+    this.#elements.doneView.classList.toggle('is-quiet', isSleepSession);
+    this.#elements.doneTitle.textContent = this.#describeDoneTitle(isRecorded, isSleepSession);
     this.#elements.doneMessage.textContent = isRecorded
-      ? `${describeDuration(meditatedSeconds)} de ${meditation.title.toLowerCase()}. Prenez un instant avant de reprendre votre journée.`
+      ? `« ${meditation.title} » : ${describeDuration(meditatedSeconds)} de pratique.`
       : "Séance de moins d'une minute : elle n'a pas été enregistrée.";
     this.#showView('done');
+  }
+
+  #describeDoneTitle(isRecorded, isSleepSession) {
+    if (isSleepSession) {
+      return 'Bonne nuit';
+    }
+    return isRecorded ? 'Bravo !' : 'À bientôt';
   }
 
   #togglePause() {

@@ -1,3 +1,50 @@
+// Each phase says whether the lungs are full, which decides the mascot's size;
+// holds keep the size of the phase before them.
+export const BREATHING_EXERCISES = Object.freeze([
+  {
+    id: 'coherence-cardiaque',
+    kind: 'breathing',
+    category: 'respiration',
+    color: 'mint',
+    title: 'Cohérence cardiaque',
+    summary: 'Six respirations par minute pour calmer le cœur et le mental.',
+    durationMinutes: 5,
+    pattern: [
+      { label: 'Inspirez', seconds: 5, isExpanded: true, tone: 'rise' },
+      { label: 'Expirez', seconds: 5, isExpanded: false, tone: 'fall' },
+    ],
+  },
+  {
+    id: 'respiration-carree',
+    kind: 'breathing',
+    category: 'respiration',
+    color: 'blue',
+    title: 'Respiration carrée',
+    summary: 'Quatre temps égaux pour retrouver le calme et la concentration.',
+    durationMinutes: 4,
+    pattern: [
+      { label: 'Inspirez', seconds: 4, isExpanded: true, tone: 'rise' },
+      { label: 'Retenez', seconds: 4, isExpanded: true, tone: null },
+      { label: 'Expirez', seconds: 4, isExpanded: false, tone: 'fall' },
+      { label: 'Retenez', seconds: 4, isExpanded: false, tone: null },
+    ],
+  },
+  {
+    id: 'respiration-478',
+    kind: 'breathing',
+    category: 'respiration',
+    color: 'indigo',
+    title: 'Respiration 4-7-8',
+    summary: 'Une longue expiration qui prépare au sommeil.',
+    durationMinutes: 3,
+    pattern: [
+      { label: 'Inspirez', seconds: 4, isExpanded: true, tone: 'rise' },
+      { label: 'Retenez', seconds: 7, isExpanded: true, tone: null },
+      { label: 'Expirez', seconds: 8, isExpanded: false, tone: 'fall' },
+    ],
+  },
+]);
+
 export const FREE_MEDITATION_ID = 'libre';
 
 // Cue times are in seconds from the start bell. Gaps are deliberately long:
@@ -5,6 +52,8 @@ export const FREE_MEDITATION_ID = 'libre';
 export const GUIDED_MEDITATIONS = Object.freeze([
   {
     id: 'pause-respiration',
+    kind: 'guided',
+    category: 'guidees',
     color: 'yellow',
     title: 'Pause respiration',
     summary: 'Trois minutes pour souffler au milieu de la journée.',
@@ -23,6 +72,8 @@ export const GUIDED_MEDITATIONS = Object.freeze([
   },
   {
     id: 'ancrage-souffle',
+    kind: 'guided',
+    category: 'guidees',
     color: 'orange',
     title: 'Ancrage dans le souffle',
     summary: "La pratique de base : revenir au souffle, encore et encore.",
@@ -46,6 +97,8 @@ export const GUIDED_MEDITATIONS = Object.freeze([
   },
   {
     id: 'scan-corporel',
+    kind: 'guided',
+    category: 'guidees',
     color: 'lilac',
     title: 'Scan corporel',
     summary: 'Parcourir le corps des pieds à la tête pour relâcher les tensions.',
@@ -73,6 +126,8 @@ export const GUIDED_MEDITATIONS = Object.freeze([
   },
   {
     id: 'observer-pensees',
+    kind: 'guided',
+    category: 'guidees',
     color: 'blue',
     title: 'Observer les pensées',
     summary: "Regarder les pensées passer comme des feuilles sur une rivière.",
@@ -94,6 +149,8 @@ export const GUIDED_MEDITATIONS = Object.freeze([
   },
   {
     id: 'bienveillance',
+    kind: 'guided',
+    category: 'guidees',
     color: 'pink',
     title: 'Bienveillance',
     summary: 'Cultiver la douceur envers soi, puis envers les autres.',
@@ -117,18 +174,179 @@ export const GUIDED_MEDITATIONS = Object.freeze([
       { atSeconds: 585, text: 'Quand la cloche sonnera, ouvrez doucement les yeux.' },
     ],
   },
+  {
+    id: 'gestion-stress',
+    kind: 'guided',
+    category: 'guidees',
+    color: 'sky',
+    title: 'Apaiser le stress',
+    summary: 'Faire de la place à la tension, puis la laisser redescendre.',
+    durationMinutes: 8,
+    cues: [
+      { atSeconds: 4, text: "Installez-vous, les deux pieds bien posés au sol. Si vous êtes tendu en ce moment, c'est le bon endroit pour commencer." },
+      { atSeconds: 26, text: 'Remarquez où le stress se loge dans votre corps : la gorge, la poitrine, le ventre, les épaules… Contentez-vous de le repérer.' },
+      { atSeconds: 56, text: "Vous n'avez pas besoin de le faire disparaître. Vous allez simplement lui faire de la place." },
+      { atSeconds: 80, text: "Prenez une inspiration un peu plus longue que d'habitude… puis expirez encore plus lentement." },
+      { atSeconds: 102, text: 'Encore une fois. Inspirez sur quatre temps… et expirez sur six.' },
+      { atSeconds: 125, text: 'Continuez à ce rythme, à votre façon. Une expiration longue dit au corps qu\'il peut se calmer.' },
+      { atSeconds: 175, text: 'Posez une main là où la tension est la plus forte. Sentez la chaleur de votre main.' },
+      { atSeconds: 212, text: 'Imaginez que chaque expiration desserre un peu ce nœud, comme on desserre une ceinture.' },
+      { atSeconds: 262, text: 'Si des pensées s\'emballent, nommez-les simplement : je m\'inquiète. Puis revenez à la main, et au souffle.' },
+      { atSeconds: 322, text: 'Rappelez-vous : ce que vous ressentez est une vague. Elle monte, puis elle redescend.' },
+      { atSeconds: 376, text: 'Remarquez si quelque chose a changé, même un tout petit peu.' },
+      { atSeconds: 420, text: 'Prenez une dernière grande inspiration… et relâchez.' },
+      { atSeconds: 448, text: "Quand la cloche sonnera, reprenez votre journée, un pas après l'autre." },
+    ],
+  },
+  {
+    id: 'gratitude',
+    kind: 'guided',
+    category: 'guidees',
+    color: 'coral',
+    title: 'Gratitude',
+    summary: 'Savourer les petites choses qui ont rendu la journée plus douce.',
+    durationMinutes: 6,
+    cues: [
+      { atSeconds: 4, text: 'Installez-vous confortablement, et laissez un léger sourire apparaître sur votre visage.' },
+      { atSeconds: 20, text: 'Prenez quelques respirations tranquilles.' },
+      { atSeconds: 40, text: 'Pensez à une petite chose agréable de votre journée. Un café chaud, un rayon de soleil, un message reçu…' },
+      { atSeconds: 76, text: "Revivez ce moment. Où étiez-vous ? Qu'avez-vous ressenti ?" },
+      { atSeconds: 115, text: 'Remarquez la sensation de gratitude dans votre corps. Peut-être une chaleur dans la poitrine.' },
+      { atSeconds: 160, text: 'Pensez maintenant à une personne qui compte pour vous. Ce qu\'elle vous apporte, simplement par sa présence.' },
+      { atSeconds: 205, text: 'Intérieurement, dites-lui merci.' },
+      { atSeconds: 240, text: 'Enfin, remerciez-vous vous-même. Pour un effort, un geste, ou simplement pour ce moment que vous vous offrez.' },
+      { atSeconds: 290, text: 'Laissez cette gratitude grandir, et se répandre dans tout le corps.' },
+      { atSeconds: 334, text: 'Quand la cloche sonnera, emportez ce sentiment avec vous.' },
+    ],
+  },
+  {
+    id: 'marche-consciente',
+    kind: 'guided',
+    category: 'guidees',
+    color: 'green',
+    title: 'Marche consciente',
+    summary: 'Méditer en marchant, les yeux ouverts, un pas après l\'autre.',
+    durationMinutes: 8,
+    cues: [
+      { atSeconds: 4, text: 'Cette méditation se fait en marchant, les yeux ouverts. Choisissez un endroit calme, où faire quelques pas, dedans ou dehors.' },
+      { atSeconds: 30, text: 'Commencez debout, immobile. Sentez vos pieds posés sur le sol, et le poids de votre corps.' },
+      { atSeconds: 55, text: "Commencez à marcher, plus lentement que d'habitude." },
+      { atSeconds: 75, text: 'Portez votre attention sur vos pieds : le talon qui se pose, puis la plante, puis les orteils.' },
+      { atSeconds: 110, text: 'Sentez le pied qui se soulève… avance… et se repose.' },
+      { atSeconds: 150, text: 'Si cela vous aide, dites intérieurement : je lève… j\'avance… je pose.' },
+      { atSeconds: 200, text: "Quand votre esprit s'éloigne, revenez simplement à la sensation des pas." },
+      { atSeconds: 250, text: "Élargissez maintenant votre attention : le mouvement des bras, l'air sur votre visage." },
+      { atSeconds: 300, text: 'Écoutez les sons autour de vous, sans les juger. Ils vont et viennent.' },
+      { atSeconds: 350, text: 'Remarquez les couleurs, la lumière, comme si vous découvriez cet endroit pour la première fois.' },
+      { atSeconds: 405, text: 'Ralentissez encore, puis arrêtez-vous. Sentez votre corps, immobile, debout.' },
+      { atSeconds: 445, text: 'Quand la cloche sonnera, reprenez votre marche, à votre rythme habituel.' },
+    ],
+  },
+  {
+    id: 'reveil-douceur',
+    kind: 'guided',
+    category: 'guidees',
+    color: 'sand',
+    title: 'Réveil en douceur',
+    summary: 'Commencer la journée avec une intention, avant de se lever.',
+    durationMinutes: 5,
+    cues: [
+      { atSeconds: 4, text: 'Bonjour. Avant de vous lever, prenez ce moment pour vous. Asseyez-vous, ou restez allongé.' },
+      { atSeconds: 24, text: 'Étirez-vous doucement, comme vous en avez envie. Les bras, les jambes, le dos.' },
+      { atSeconds: 55, text: 'Prenez une grande inspiration… et soufflez.' },
+      { atSeconds: 76, text: "Sentez l'énergie du matin entrer avec chaque inspiration." },
+      { atSeconds: 110, text: 'Remarquez comment vous vous sentez, sans jugement. Reposé, fatigué, impatient… tout est bien.' },
+      { atSeconds: 155, text: 'Choisissez maintenant une intention pour la journée. Un mot suffit : calme, patience, joie…' },
+      { atSeconds: 200, text: 'Répétez ce mot intérieurement, à chaque expiration.' },
+      { atSeconds: 268, text: 'Ouvrez doucement les yeux. Belle journée à vous.' },
+    ],
+  },
+  {
+    id: 'minute-calme',
+    kind: 'guided',
+    category: 'express',
+    color: 'pink',
+    title: 'Minute de calme',
+    summary: 'Une minute pour souffler, n\'importe où.',
+    durationMinutes: 1,
+    cues: [
+      { atSeconds: 3, text: 'Arrêtez-vous un instant. Posez ce que vous faites.' },
+      { atSeconds: 12, text: 'Prenez une grande inspiration… et soufflez longuement.' },
+      { atSeconds: 26, text: 'Encore une… lentement.' },
+      { atSeconds: 38, text: 'Sentez vos pieds au sol, et vos épaules qui se relâchent.' },
+    ],
+  },
+  {
+    id: 'recentrage-express',
+    kind: 'guided',
+    category: 'express',
+    color: 'orange',
+    title: 'Recentrage express',
+    summary: 'Trois sons, trois sensations, trois respirations.',
+    durationMinutes: 2,
+    cues: [
+      { atSeconds: 3, text: 'Asseyez-vous droit, et fermez les yeux si vous le pouvez.' },
+      { atSeconds: 14, text: 'Remarquez trois sons autour de vous.' },
+      { atSeconds: 36, text: 'Remarquez maintenant trois sensations dans votre corps.' },
+      { atSeconds: 58, text: 'Puis suivez trois respirations, du début à la fin.' },
+      { atSeconds: 86, text: "Vous êtes ici, maintenant. C'est tout ce qui compte." },
+      { atSeconds: 104, text: 'Ouvrez les yeux, et reprenez votre journée.' },
+    ],
+  },
+  {
+    id: 'sommeil',
+    kind: 'guided',
+    category: 'sommeil',
+    color: 'indigo',
+    title: 'Glisser vers le sommeil',
+    summary: 'Relâcher le corps et laisser venir le sommeil. La voix s\'estompe, sans cloche finale.',
+    durationMinutes: 15,
+    // Built for falling asleep: the voice gets quieter as it goes, and no bell rings at the end.
+    voiceFade: true,
+    closingBells: false,
+    cues: [
+      { atSeconds: 5, text: "Allongez-vous confortablement dans votre lit. Laissez votre tête s'enfoncer dans l'oreiller." },
+      { atSeconds: 22, text: "Vous n'avez plus rien à faire aujourd'hui. La journée est terminée." },
+      { atSeconds: 38, text: 'Prenez une grande inspiration… et laissez-la partir dans un long soupir.' },
+      { atSeconds: 58, text: 'Encore une fois… inspirez profondément… et relâchez tout.' },
+      { atSeconds: 82, text: 'Laissez maintenant votre respiration devenir lente et naturelle.' },
+      { atSeconds: 112, text: 'Sentez le poids de votre corps. Il devient lourd, et le lit le porte entièrement.' },
+      { atSeconds: 150, text: "Relâchez votre front… vos sourcils… l'espace entre les yeux." },
+      { atSeconds: 186, text: 'Laissez vos mâchoires se desserrer. Votre langue repose doucement.' },
+      { atSeconds: 222, text: "Vos épaules s'enfoncent dans le matelas. Vos bras deviennent lourds… jusqu'au bout des doigts." },
+      { atSeconds: 268, text: 'Votre ventre se soulève et redescend, tout seul, comme une vague lente.' },
+      { atSeconds: 312, text: 'Vos jambes sont lourdes… vos pieds sont chauds et détendus.' },
+      { atSeconds: 362, text: 'Si des pensées de la journée reviennent, laissez-les passer. Elles peuvent attendre demain.' },
+      { atSeconds: 422, text: 'Comptez maintenant vos respirations à rebours, à partir de dix. Si vous perdez le fil, recommencez simplement à dix.' },
+      { atSeconds: 505, text: "Il n'y a rien à réussir. Juste vous laisser glisser." },
+      { atSeconds: 585, text: "Votre corps sait comment s'endormir. Laissez-le faire." },
+      { atSeconds: 665, text: 'Tout est calme… tout est lourd… tout est doux.' },
+      { atSeconds: 745, text: 'Laissez-vous partir… doucement… vers le sommeil.' },
+      { atSeconds: 830, text: 'Bonne nuit.' },
+    ],
+  },
 ]);
 
 export const FREE_MEDITATION = Object.freeze({
   id: FREE_MEDITATION_ID,
-  color: 'mint',
+  kind: 'free',
+  category: 'libre',
+  color: 'lilac',
   title: 'Méditation libre',
   summary: 'Sans voix : la cloche, et un guide de respiration si vous le souhaitez.',
   durationMinutes: null,
   cues: [],
 });
 
-export const ALL_MEDITATIONS = Object.freeze([...GUIDED_MEDITATIONS, FREE_MEDITATION]);
+export const ALL_MEDITATIONS = Object.freeze([...GUIDED_MEDITATIONS, ...BREATHING_EXERCISES, FREE_MEDITATION]);
+
+export const CATEGORIES = Object.freeze([
+  { id: 'guidees', title: 'Méditations guidées' },
+  { id: 'express', title: 'Express' },
+  { id: 'respiration', title: 'Respiration' },
+  { id: 'sommeil', title: 'Sommeil' },
+  { id: 'libre', title: 'En silence' },
+]);
 
 // Files produced by tools/generate_audio.py, which names them after the meditation id.
 export function audioTrackPath(meditation) {
