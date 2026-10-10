@@ -25,6 +25,13 @@ function describeMeditationLength(meditation) {
   return meditation.durationMinutes === null ? 'durée au choix' : `${meditation.durationMinutes} min`;
 }
 
+function greetingForHour(hour) {
+  if (hour < 5 || hour >= 18) {
+    return 'Bonsoir';
+  }
+  return hour < 12 ? 'Bonjour' : 'Bon après-midi';
+}
+
 class MeditationApp {
   #elements;
   #timer;
@@ -40,6 +47,11 @@ class MeditationApp {
     this.#elements = {
       optionTemplate,
       views: rootElement.querySelectorAll('[data-view]'),
+      sessionView: requireElement(rootElement, '[data-view="session"]'),
+      doneView: requireElement(rootElement, '[data-view="done"]'),
+      greeting: requireElement(rootElement, '[data-greeting]'),
+      startDetail: requireElement(rootElement, '[data-start-detail]'),
+      progressRing: requireElement(rootElement, '[data-progress-ring]'),
       setupForm: requireElement(rootElement, '[data-setup-form]'),
       meditationList: requireElement(rootElement, '[data-meditation-list]'),
       freeOptions: requireElement(rootElement, '[data-free-options]'),
@@ -49,6 +61,7 @@ class MeditationApp {
       pauseButton: requireElement(rootElement, '[data-pause-button]'),
       stopButton: requireElement(rootElement, '[data-stop-button]'),
       backButton: requireElement(rootElement, '[data-back-button]'),
+      doneTitle: requireElement(rootElement, '[data-done-title]'),
       doneMessage: requireElement(rootElement, '[data-done-message]'),
       sessionsStat: requireElement(rootElement, '[data-stat="sessions"]'),
       minutesStat: requireElement(rootElement, '[data-stat="minutes"]'),
@@ -67,6 +80,7 @@ class MeditationApp {
   }
 
   init() {
+    this.#elements.greeting.textContent = greetingForHour(new Date().getHours());
     this.#renderMeditationOptions();
     this.#applyPreferencesToForm(loadPreferences());
     this.#renderOptionGroups();
@@ -103,17 +117,24 @@ class MeditationApp {
     const fragment = document.createDocumentFragment();
     for (const meditation of ALL_MEDITATIONS) {
       const optionElement = this.#elements.optionTemplate.content.firstElementChild.cloneNode(true);
+      optionElement.dataset.color = meditation.color;
       requireElement(optionElement, 'input').value = meditation.id;
-      requireElement(optionElement, '.meditation-option__title').textContent = meditation.title;
-      requireElement(optionElement, '.meditation-option__duration').textContent = describeMeditationLength(meditation);
-      requireElement(optionElement, '.meditation-option__summary').textContent = meditation.summary;
+      requireElement(optionElement, '.meditation-card__title').textContent = meditation.title;
+      requireElement(optionElement, '.meditation-card__duration').textContent = describeMeditationLength(meditation);
+      requireElement(optionElement, '.meditation-card__summary').textContent = meditation.summary;
       fragment.append(optionElement);
     }
     this.#elements.meditationList.replaceChildren(fragment);
   }
 
   #renderOptionGroups() {
-    this.#elements.freeOptions.hidden = this.#readSelectedMeditation().id !== FREE_MEDITATION_ID;
+    const selectedMeditation = this.#readSelectedMeditation();
+    const isFreeMeditation = selectedMeditation.id === FREE_MEDITATION_ID;
+    const durationLabel = isFreeMeditation
+      ? `${this.#readFormPreferences().durationMinutes} min`
+      : describeMeditationLength(selectedMeditation);
+    this.#elements.freeOptions.hidden = !isFreeMeditation;
+    this.#elements.startDetail.textContent = `${selectedMeditation.title} · ${durationLabel}`;
   }
 
   #handleSetupChange() {
@@ -183,9 +204,12 @@ class MeditationApp {
 
     try {
       await this.#bell.unlock();
+      this.#elements.sessionView.dataset.color = session.meditation.color;
+      this.#elements.doneView.dataset.color = session.meditation.color;
       this.#elements.sessionTitle.textContent = session.meditation.title;
       this.#elements.cue.textContent = '';
       this.#elements.clock.textContent = formatClock(session.durationSeconds);
+      this.#renderProgress(0);
       this.#showView('session');
       this.#renderPausedState(false);
       if (session.breathingMode !== null) {
@@ -219,6 +243,9 @@ class MeditationApp {
 
   #handleTick({ remainingSeconds, elapsedSeconds }) {
     this.#elements.clock.textContent = formatClock(remainingSeconds);
+    if (this.#activeSession !== null) {
+      this.#renderProgress(Math.min(1, elapsedSeconds / this.#activeSession.durationSeconds));
+    }
     this.#presentDueCue(elapsedSeconds);
     this.#ringIntervalBellIfDue(remainingSeconds, elapsedSeconds);
   }
@@ -276,8 +303,9 @@ class MeditationApp {
       this.#history.record({ durationSeconds: meditatedSeconds, meditationId: meditation.id });
       this.#renderStats();
     }
+    this.#elements.doneTitle.textContent = isRecorded ? 'Bravo !' : 'À bientôt';
     this.#elements.doneMessage.textContent = isRecorded
-      ? `${meditation.title} : ${describeDuration(meditatedSeconds)} de pratique. Prenez un instant avant de reprendre votre journée.`
+      ? `${describeDuration(meditatedSeconds)} de ${meditation.title.toLowerCase()}. Prenez un instant avant de reprendre votre journée.`
       : "Séance de moins d'une minute : elle n'a pas été enregistrée.";
     this.#showView('done');
   }
@@ -318,6 +346,10 @@ class MeditationApp {
     if (document.visibilityState === 'visible' && this.#activeSession !== null && this.#activeClock().isRunning) {
       this.#wakeLock.acquire();
     }
+  }
+
+  #renderProgress(completedFraction) {
+    this.#elements.progressRing.style.setProperty('--progress', completedFraction.toFixed(4));
   }
 
   #renderPausedState(isPaused) {

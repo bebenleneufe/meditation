@@ -5,6 +5,7 @@ export const FREE_MEDITATION_ID = 'libre';
 export const GUIDED_MEDITATIONS = Object.freeze([
   {
     id: 'pause-respiration',
+    color: 'yellow',
     title: 'Pause respiration',
     summary: 'Trois minutes pour souffler au milieu de la journée.',
     durationMinutes: 3,
@@ -22,6 +23,7 @@ export const GUIDED_MEDITATIONS = Object.freeze([
   },
   {
     id: 'ancrage-souffle',
+    color: 'orange',
     title: 'Ancrage dans le souffle',
     summary: "La pratique de base : revenir au souffle, encore et encore.",
     durationMinutes: 10,
@@ -44,6 +46,7 @@ export const GUIDED_MEDITATIONS = Object.freeze([
   },
   {
     id: 'scan-corporel',
+    color: 'lilac',
     title: 'Scan corporel',
     summary: 'Parcourir le corps des pieds à la tête pour relâcher les tensions.',
     durationMinutes: 12,
@@ -70,6 +73,7 @@ export const GUIDED_MEDITATIONS = Object.freeze([
   },
   {
     id: 'observer-pensees',
+    color: 'blue',
     title: 'Observer les pensées',
     summary: "Regarder les pensées passer comme des feuilles sur une rivière.",
     durationMinutes: 8,
@@ -90,6 +94,7 @@ export const GUIDED_MEDITATIONS = Object.freeze([
   },
   {
     id: 'bienveillance',
+    color: 'pink',
     title: 'Bienveillance',
     summary: 'Cultiver la douceur envers soi, puis envers les autres.',
     durationMinutes: 10,
@@ -116,6 +121,7 @@ export const GUIDED_MEDITATIONS = Object.freeze([
 
 export const FREE_MEDITATION = Object.freeze({
   id: FREE_MEDITATION_ID,
+  color: 'mint',
   title: 'Méditation libre',
   summary: 'Sans voix : la cloche, et un guide de respiration si vous le souhaitez.',
   durationMinutes: null,

@@ -1,42 +1,69 @@
+/* Layout: one playful column — greeting with mascot, practice pills, a grid of
+   colour-coded meditation cards; sessions open as a full-screen tinted scene. */
 :root {
-  --color-background: #f4f1ea;
-  --color-surface: #ffffff;
-  --color-text: #2b3433;
-  --color-muted: #6f7a78;
-  --color-accent: #4f8a7b;
-  --color-accent-contrast: #ffffff;
-  --color-border: #ddd7cb;
-  --color-breath: rgba(79, 138, 123, 0.25);
-  --radius: 14px;
+  --bg: #fff6ec;
+  --surface: #ffffff;
+  --ink: #2b2340;
+  --muted: #776f8f;
+  --line: #f0e3d4;
+  --accent: #ee5f2a;
+  --accent-deep: #c4471a;
+  --accent-ink: #ffffff;
+  /* The mascot's face sits on a saturated body in both themes, so it stays dark. */
+  --face: #2b2340;
+
+  --font-display: "Fredoka", "Varela Round", "Nunito", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-card: 24px;
   --phase-duration: 4000ms;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-background: #1f2d2b;
-    --color-surface: #283836;
-    --color-text: #e9efe9;
-    --color-muted: #9fb0ac;
-    --color-accent: #8cc7b5;
-    --color-accent-contrast: #1f2d2b;
-    --color-border: #3a4c49;
-    --color-breath: rgba(140, 199, 181, 0.2);
+    --bg: #1d1a36;
+    --surface: #2a2650;
+    --ink: #f6f1ff;
+    --muted: #aaa3cc;
+    --line: #3a3566;
+    --accent: #ff8a57;
+    --accent-deep: #d8622f;
+    --accent-ink: #1d1a36;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --color-background: #1f2d2b;
-  --color-surface: #283836;
-  --color-text: #e9efe9;
-  --color-muted: #9fb0ac;
-  --color-accent: #8cc7b5;
-  --color-accent-contrast: #1f2d2b;
-  --color-border: #3a4c49;
-  --color-breath: rgba(140, 199, 181, 0.2);
+  --bg: #1d1a36;
+  --surface: #2a2650;
+  --ink: #f6f1ff;
+  --muted: #aaa3cc;
+  --line: #3a3566;
+  --accent: #ff8a57;
+  --accent-deep: #d8622f;
+  --accent-ink: #1d1a36;
   color-scheme: dark;
 }
+
+/* Each meditation owns a colour; the soft tint is derived so it follows the theme. */
+[data-color="yellow"] { --c: #ffb938; --c-deep: #c7860a; }
+[data-color="orange"] { --c: #ff7a45; --c-deep: #d9541f; }
+[data-color="lilac"] { --c: #9b7bea; --c-deep: #6e4fc4; }
+[data-color="blue"] { --c: #4a90e2; --c-deep: #2867b3; }
+[data-color="pink"] { --c: #f2709c; --c-deep: #c9466f; }
+[data-color="mint"] { --c: #3dbe9a; --c-deep: #1e8c6d; }
+[data-color] {
+  --c-soft: color-mix(in srgb, var(--c) 22%, var(--bg));
+  --c-text: var(--c-deep);
+}
+
+/* On the dark tints the deep shade loses contrast; the bright one reads better. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) [data-color] { --c-text: var(--c); }
+}
+
+:root[data-theme="dark"] [data-color] { --c-text: var(--c); }
 
 *,
 *::before,
@@ -44,51 +71,300 @@
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--color-background);
-  color: var(--color-text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.5;
-}
-
-.app {
-  max-width: 440px;
-  margin: 0 auto;
-  padding: 32px 16px;
-}
-
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-
 /* Component rules set "display", which would otherwise override the hidden attribute. */
 [hidden] {
   display: none !important;
 }
 
-.header h1 {
+body {
   margin: 0;
-  font-weight: 500;
-  font-size: 1.9rem;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-.tagline {
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 28px 40px;
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---------- Mascot ---------- */
+
+.mascot {
+  position: relative;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+}
+
+.mascot__body {
+  position: absolute;
+  inset: 0;
+  background: var(--c);
+  border-radius: 58% 42% 52% 48% / 52% 46% 54% 48%;
+}
+
+.mascot__face {
+  position: absolute;
+  left: 19%;
+  top: 36%;
+  width: 62%;
+  overflow: visible;
+}
+
+.mascot__eye,
+.mascot__mouth {
+  fill: none;
+  stroke: var(--face);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.mascot__mouth--open {
+  fill: var(--face);
+  stroke-linejoin: round;
+}
+
+.mascot__cheek {
+  fill: #ffffff;
+  opacity: 0.35;
+}
+
+.mascot--hero {
+  width: 112px;
+  animation: float 6s ease-in-out infinite;
+}
+
+.mascot--card {
+  width: 46%;
+}
+
+/* ---------- Setup ---------- */
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hero__text {
+  min-width: 0;
+}
+
+.hero__brand {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hero__greeting {
   margin: 4px 0 0;
-  color: var(--color-muted);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2rem, 8vw, 2.6rem);
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.hero__tagline {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 8px;
+  padding: 12px;
+  background: var(--c-soft);
+  border-radius: 18px;
+}
+
+.stat__icon {
+  grid-row: span 2;
+  width: 26px;
+  height: 26px;
+  fill: var(--c-deep);
+}
+
+.stat__value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.4rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__label {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--muted);
 }
 
 .setup-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  gap: 24px;
+}
+
+.picker {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.section-title {
+  margin-bottom: 14px;
+  padding: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.35rem;
+}
+
+.meditation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.meditation-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  border: 3px solid transparent;
+  border-radius: var(--radius-card);
+  box-shadow: 0 4px 0 var(--line);
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.meditation-card:hover {
+  transform: translateY(-3px);
+}
+
+.meditation-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.meditation-card:has(input:checked) {
+  border-color: var(--c-deep);
+  transform: translateY(-3px);
+}
+
+.meditation-card:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.meditation-card__art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--c-soft);
+  overflow: hidden;
+}
+
+.meditation-card__art::before,
+.meditation-card__art::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: var(--c);
+  opacity: 0.25;
+}
+
+.meditation-card__art::before {
+  width: 60%;
+  aspect-ratio: 1;
+  right: -18%;
+  top: -22%;
+}
+
+.meditation-card__art::after {
+  width: 28%;
+  aspect-ratio: 1;
+  left: 8%;
+  bottom: -10%;
+}
+
+.meditation-card__art .mascot {
+  z-index: 1;
+}
+
+/* A different silhouette per card keeps the family varied without extra artwork. */
+.meditation-card:nth-child(2) .mascot__body { border-radius: 50% 50% 46% 54% / 60% 60% 40% 40%; }
+.meditation-card:nth-child(3) .mascot__body { border-radius: 42% 58% 38% 62% / 48% 40% 60% 52%; }
+.meditation-card:nth-child(4) .mascot__body { border-radius: 50%; }
+.meditation-card:nth-child(5) .mascot__body { border-radius: 64% 36% 56% 44% / 44% 56% 44% 56%; }
+.meditation-card:nth-child(6) .mascot__body { border-radius: 30% 30% 50% 50% / 30% 30% 70% 70%; }
+
+.meditation-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 4px;
+  padding: 12px 14px 14px;
+}
+
+.meditation-card__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.meditation-card__summary {
+  flex: 1;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.meditation-card__duration {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--c-text);
+  background: var(--c-soft);
+  border-radius: 999px;
+}
+
+.free-options {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+  background: var(--surface);
+  border-radius: var(--radius-card);
 }
 
 .field {
@@ -97,16 +373,21 @@ body {
   border: 0;
 }
 
-.field legend {
-  margin-bottom: 10px;
-  padding: 0;
-}
-
 .field--inline {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+.field__label {
+  margin-bottom: 10px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.field--inline .field__label {
+  margin-bottom: 0;
 }
 
 .chips {
@@ -123,234 +404,243 @@ body {
 
 .chip span {
   display: inline-block;
-  min-width: 44px;
-  padding: 8px 12px;
-  text-align: center;
-  border: 1px solid var(--color-border);
+  padding: 7px 14px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: var(--bg);
   border-radius: 999px;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
 
 .chip input:checked + span {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: var(--color-accent-contrast);
+  background: var(--ink);
+  color: var(--bg);
 }
 
 .chip input:focus-visible + span {
-  outline: 2px solid var(--color-accent);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
 select {
-  padding: 6px 8px;
+  padding: 8px 12px;
   font: inherit;
   color: inherit;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: var(--bg);
+  border: 0;
+  border-radius: 12px;
 }
 
-.toggle input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--color-accent);
+.switch {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
 }
+
+/* ---------- Buttons ---------- */
 
 .button {
-  padding: 12px 22px;
   font: inherit;
-  color: var(--color-text);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
   cursor: pointer;
-}
-
-.button--primary {
-  color: var(--color-accent-contrast);
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.button--ghost {
-  border-color: transparent;
-  color: var(--color-muted);
+  border: 0;
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 3px solid var(--ink);
   outline-offset: 3px;
 }
 
-.stats dl {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 0;
+.button--start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 16px 24px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: 999px;
+  box-shadow: 0 6px 0 var(--accent-deep);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
-.stat {
+.button--start:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--accent-deep);
+}
+
+.button__detail {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.button__detail:empty {
+  display: none;
+}
+
+.button--round {
+  min-width: 132px;
+  padding: 14px 26px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--surface);
+  background: var(--ink);
+  border-radius: 999px;
+}
+
+.button--quiet {
+  padding: 14px 18px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border-radius: 999px;
+}
+
+/* ---------- Session & end scenes ---------- */
+
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow-y: auto;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding-inline: 16px;
+  padding-block: calc(24px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-bottom, 0px));
   text-align: center;
+  background: var(--c-soft);
 }
 
-.stat dt {
-  font-size: 0.8rem;
-  color: var(--color-muted);
+.scene::before,
+.scene::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--c);
+  opacity: 0.18;
+  pointer-events: none;
 }
 
-.stat dd {
+.scene::before {
+  width: 70vmax;
+  aspect-ratio: 1;
+  right: -30vmax;
+  top: -30vmax;
+}
+
+.scene::after {
+  width: 40vmax;
+  aspect-ratio: 1;
+  left: -16vmax;
+  bottom: -14vmax;
+}
+
+.scene__top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.scene__title {
   margin: 0;
-  font-size: 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--c-text);
+}
+
+.scene__clock {
+  margin: 0;
+  font-weight: 600;
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
-.view--session,
-.view--done {
-  align-items: center;
-  text-align: center;
-  padding-top: 24px;
+.scene__clock.is-paused {
+  opacity: 0.5;
 }
 
 .breath {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: 260px;
-  height: 260px;
+  width: min(72vw, 300px);
+  aspect-ratio: 1;
+  max-width: 100%;
 }
 
-.breath__circle {
+.breath__ring {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  background: var(--color-breath);
-  border: 2px solid var(--color-accent);
-  transform: scale(0.55);
+  transform: rotate(-90deg);
+}
+
+.breath__track,
+.breath__progress {
+  fill: none;
+  stroke-width: 3;
+}
+
+.breath__track {
+  stroke: var(--c);
+  opacity: 0.3;
+}
+
+.breath__progress {
+  stroke: var(--c-deep);
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: calc(100 - var(--progress, 0) * 100);
+  transition: stroke-dashoffset 1s linear;
+}
+
+.mascot--session {
+  position: absolute;
+  inset: 14%;
+  transform: scale(0.78);
   transition: transform var(--phase-duration) ease-in-out;
 }
 
-.breath__circle.is-expanded {
+.mascot--session.is-expanded {
   transform: scale(1);
 }
 
+.mascot--session.is-ambient {
+  animation: ambient-breath 10s ease-in-out infinite;
+}
+
+.mascot--session.is-paused {
+  animation-play-state: paused;
+}
+
 .breath__label {
-  position: relative;
   margin: 0;
-  font-size: 1.2rem;
-  color: var(--color-text);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: var(--c-text);
 }
 
-.clock {
-  margin: 0;
-  font-size: 3rem;
-  font-weight: 300;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-}
-
-.clock.is-paused {
-  opacity: 0.5;
-}
-
-.controls {
-  display: flex;
-  gap: 12px;
-}
-
-.hint {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--color-muted);
-}
-
-.view--done h2 {
-  margin: 0;
-  font-weight: 500;
-}
-
-.done-message {
-  margin: 0;
-  color: var(--color-muted);
-}
-
-.option-group {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.meditation-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.meditation-option input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.meditation-option__body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: border-color 0.2s, background-color 0.2s;
-}
-
-.meditation-option input:checked + .meditation-option__body {
-  border-color: var(--color-accent);
-  background: var(--color-breath);
-}
-
-.meditation-option input:focus-visible + .meditation-option__body {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.meditation-option__heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.meditation-option__title {
-  font-weight: 500;
-}
-
-.meditation-option__duration {
-  flex-shrink: 0;
-  font-size: 0.85rem;
-  color: var(--color-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.meditation-option__summary {
-  font-size: 0.9rem;
-  color: var(--color-muted);
-}
-
-.session-title {
-  margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-muted);
+.breath__label:empty {
+  display: none;
 }
 
 .cue {
+  max-width: 30ch;
   min-height: 4.5em;
-  max-width: 34ch;
   margin: 0;
-  font-size: 1.15rem;
-  line-height: 1.5;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.3rem;
+  line-height: 1.45;
   text-wrap: balance;
 }
 
@@ -358,35 +648,99 @@ select {
   min-height: 0;
 }
 
-.view--session .clock {
-  font-size: 2rem;
-  color: var(--color-muted);
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 
-.breath__circle.is-ambient {
-  animation: ambient-breath 10s ease-in-out infinite;
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 
-.breath__circle.is-paused {
-  animation-play-state: paused;
+.mascot--done {
+  width: min(44vw, 180px);
+  animation: bounce 1.6s ease-in-out infinite;
+}
+
+.done__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 2.4rem;
+  color: var(--c-text);
+}
+
+.done__message {
+  max-width: 34ch;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.view--done .button--start {
+  max-width: 320px;
+}
+
+.confetti span {
+  position: fixed;
+  top: -24px;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--c);
+  animation: confetti-fall 7s linear infinite;
+}
+
+.confetti span:nth-child(1) { left: 12%; animation-delay: 0s; }
+.confetti span:nth-child(2) { left: 30%; animation-delay: 2.4s; border-radius: 50%; background: var(--accent); }
+.confetti span:nth-child(3) { left: 48%; animation-delay: 1.2s; }
+.confetti span:nth-child(4) { left: 64%; animation-delay: 3.6s; border-radius: 50%; background: var(--accent); }
+.confetti span:nth-child(5) { left: 80%; animation-delay: 0.6s; }
+.confetti span:nth-child(6) { left: 92%; animation-delay: 4.8s; border-radius: 50%; }
+
+/* ---------- Motion ---------- */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
 }
 
 @keyframes ambient-breath {
-  0%,
-  100% {
-    transform: scale(0.55);
-  }
-  45% {
-    transform: scale(0.85);
+  0%, 100% { transform: scale(0.78); }
+  45% { transform: scale(1); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  40% { transform: translateY(-16px) scale(0.96, 1.04); }
+  80% { transform: translateY(0) scale(1.05, 0.95); }
+}
+
+@keyframes confetti-fall {
+  from { transform: translateY(0) rotate(0deg); opacity: 1; }
+  to { transform: translateY(110vh) rotate(540deg); opacity: 0.4; }
+}
+
+@media (min-width: 520px) {
+  .meditation-card__summary {
+    font-size: 0.85rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .breath__circle {
-    transition: none;
+  .mascot--hero,
+  .mascot--done,
+  .mascot--session.is-ambient,
+  .confetti span {
+    animation: none;
   }
 
-  .breath__circle.is-ambient {
-    animation: none;
+  .mascot--session,
+  .meditation-card,
+  .breath__progress {
+    transition: none;
   }
 }
