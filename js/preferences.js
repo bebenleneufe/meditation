@@ -4,6 +4,7 @@ import { isValidReminderTime } from './reminder.js';
 import { isKnownAccessory } from './achievements.js';
 
 const PREFERENCES_KEY = 'meditation.preferences.v1';
+export const AMBIENCE_AFTER_CHOICES = Object.freeze([0, 15, 30, 60]);
 
 export const DEFAULT_PREFERENCES = Object.freeze({
   meditationId: 'pause-respiration',
@@ -12,6 +13,7 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   breathingGuideEnabled: true,
   ambienceId: 'nappe',
   ambienceVolume: 0.5,
+  ambienceAfterMinutes: 0,
   reminderTime: '08:00',
   wornAccessory: null,
 });
@@ -48,6 +50,9 @@ function sanitizePreferences(storedPreferences) {
     && storedPreferences.ambienceVolume >= 0
     && storedPreferences.ambienceVolume <= 1) {
     sanitizedPreferences.ambienceVolume = storedPreferences.ambienceVolume;
+  }
+  if (AMBIENCE_AFTER_CHOICES.includes(storedPreferences.ambienceAfterMinutes)) {
+    sanitizedPreferences.ambienceAfterMinutes = storedPreferences.ambienceAfterMinutes;
   }
   if (isValidReminderTime(storedPreferences.reminderTime)) {
     sanitizedPreferences.reminderTime = storedPreferences.reminderTime;

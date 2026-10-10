@@ -2,7 +2,7 @@
 // with the cache as the offline fallback. Audio is cached whole after a first
 // play, then served in byte ranges: iOS refuses to play media without them.
 
-const SHELL_CACHE = 'shell-v2';
+const SHELL_CACHE = 'shell-v3';
 const AUDIO_CACHE = 'audio-v1';
 const FONT_CACHE = 'fonts-v1';
 const KNOWN_CACHES = new Set([SHELL_CACHE, AUDIO_CACHE, FONT_CACHE]);

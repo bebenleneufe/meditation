@@ -4,26 +4,29 @@ Une petite appli de méditation, juste pour moi. Pas de compte, pas de pub, pas 
 
 ## Ce qu'elle fait
 
-- **Méditations guidées** à voix haute, avec les consignes aussi affichées à l'écran :
-  - Pause respiration (3 min)
-  - Ancrage dans le souffle (10 min)
-  - Scan corporel (12 min)
-  - Observer les pensées (8 min)
-  - Bienveillance (10 min)
-- **Voix d'homme posée**, enregistrée dans de vrais fichiers audio (dossier `audio/`). Chaque méditation est une seule piste : cloche, consignes, silences, cloches de fin.
-  La piste continue de jouer quand le téléphone se verrouille. Si elle ne se charge pas, la séance continue avec les consignes à l'écran.
-- **Méditation libre**, sans voix :
-  - durée de 1 à 30 minutes ;
-  - cloche d'intervalle en option ;
-  - guide de respiration en option (4 s d'inspiration, 6 s d'expiration).
-- **Musique d'ambiance** au choix (nappe douce, pluie, vagues), avec un volume réglable. Elle est synthétisée en direct par la Web Audio API, donc sans fichier et sans coupure à la boucle. On peut la couper pendant la séance (bouton ou touche `M`).
-- **Cloche de bol chantant**, synthétisée avec la Web Audio API : un coup au début, trois à la fin.
-- **Statistiques** : nombre de séances, minutes au total, jours d'affilée. Elles sont enregistrées dans le `localStorage`.
-  Une séance de moins d'une minute ne compte pas.
-- Les réglages sont mémorisés d'une fois sur l'autre.
-- L'écran reste allumé pendant la séance (Wake Lock API), pour que la cloche de fin sonne bien sur mobile.
-- Mode sombre automatique.
-- Raccourcis : `Espace` met en pause, `Échap` termine.
+**Séances**
+- **Méditations guidées**, lues par une voix d'homme posée, avec les consignes affichées à l'écran : pause respiration, ancrage dans le souffle, scan corporel, observer les pensées, bienveillance, apaiser le stress, gratitude, marche consciente, réveil en douceur.
+- **Express** : minute de calme, recentrage en deux minutes.
+- **Respiration** : cohérence cardiaque, respiration carrée, 4-7-8. La mascotte suit le rythme, avec un son montant à l'inspiration et descendant à l'expiration pour pratiquer les yeux fermés.
+- **Sommeil** : une méditation dont la voix s'estompe peu à peu, sans cloche finale.
+- **En silence** : durée au choix, cloche d'intervalle et guide de respiration en option.
+
+Chaque méditation guidée est une seule piste MP3 (cloche, consignes, silences, cloches de fin) : elle continue de jouer quand le téléphone se verrouille. Si elle ne se charge pas, la séance continue avec les consignes à l'écran.
+
+**Ambiance**
+- Six musiques d'ambiance synthétisées en direct (nappe douce, pluie, vagues, feu de cheminée, forêt, bol tibétain), sans fichier et sans coupure à la boucle. Volume réglable, coupure pendant la séance (bouton ou touche `M`).
+- **Minuterie de sommeil** : la musique peut continuer 15, 30 ou 60 minutes après la séance, puis s'éteint en fondu.
+
+**Suivi et motivation**
+- Série de jours en cours, meilleure série, minutes et séances.
+- Calendrier mensuel des jours pratiqués.
+- Onze badges. Six d'entre eux offrent un accessoire à la mascotte (fleur, bonnet, écharpe, casque, lunettes, couronne), porté dès qu'il est gagné.
+
+**Au quotidien**
+- **Installable sur téléphone** (application web progressive) : icône sur l'écran d'accueil, plein écran, fonctionnement hors ligne. Chaque méditation est gardée en cache après sa première écoute.
+- **Rappel quotidien** : un rendez-vous récurrent avec alerte est ajouté à l'agenda du téléphone. Sans serveur, c'est le seul moyen fiable d'être prévenu à heure fixe, appli fermée.
+- L'écran reste allumé pendant la séance. Mode sombre automatique. Réglages et historique sont gardés dans le navigateur (`localStorage`).
+- Raccourcis : `Espace` met en pause, `M` coupe la musique, `Échap` termine.
 
 ## Lancer l'appli
 
@@ -34,7 +37,14 @@ python3 -m http.server 8000
 # puis ouvrir http://localhost:8000
 ```
 
-Pour l'avoir sur le téléphone, le plus simple est d'activer **GitHub Pages** sur ce dépôt (Settings → Pages → branche `main`, dossier `/`).
+## L'installer sur le téléphone
+
+1. Sur GitHub : **Settings → Pages**, source « Deploy from a branch », choisir la branche de l'appli et le dossier `/ (root)`, puis **Save**.
+   Au bout d'une minute, l'appli est en ligne à l'adresse `https://bebenleneufe.github.io/meditation/`.
+2. Ouvrir cette adresse sur le téléphone :
+   - **iPhone** (Safari) : bouton Partager, puis « Sur l'écran d'accueil » ;
+   - **Android** (Chrome) : menu ⋮, puis « Installer l'application ».
+3. Pour le rappel : dans l'appli, choisir l'heure sous « Rappel quotidien », toucher « Ajouter à mon agenda », puis ouvrir le fichier proposé.
 
 ## Régénérer les pistes audio
 
@@ -66,21 +76,27 @@ Chaque piste est vérifiée en la faisant transcrire par Whisper.
 ## Organisation
 
 ```
-index.html          structure des trois écrans (réglages, séance, fin)
-styles.css          thème clair/sombre, animation du cercle
-js/app.js           orchestration : événements, écrans, cycle de vie
-js/timer.js         minuteur sans dérive (basé sur un horodatage de fin)
-js/bell.js          synthèse de la cloche
-js/meditations.js   textes des méditations guidées et moment de chaque consigne
-js/guided-script.js déroulé des consignes pendant la séance
-js/audio-track.js   lecture de la piste audio, qui sert aussi d'horloge à la séance
-audio/              pistes MP3 générées (une par méditation guidée)
-tools/              script de génération des pistes
-js/ambience.js      musique d'ambiance synthétisée
-js/breathing.js     cercle de respiration (rythmé ou ambiant)
-js/history.js       historique et série de jours
-js/preferences.js   réglages mémorisés
-js/storage.js       accès au localStorage protégé contre les erreurs
-js/wake-lock.js     maintien de l'écran allumé
-js/format.js        mise en forme des durées
+index.html             écrans (accueil, progrès, séance, fin) et dessins SVG (mascotte, accessoires, badges)
+styles.css             thème clair/sombre, couleurs par séance, animations
+manifest.webmanifest   installation sur téléphone
+sw.js                  service worker : mode hors ligne et cache des pistes audio
+icons/                 icônes de l'appli
+audio/                 pistes MP3 générées (une par méditation guidée)
+tools/                 script de génération des pistes
+js/app.js              orchestration : événements, écrans, déroulé d'une séance
+js/meditations.js      catalogue : textes et moments des consignes, rythmes de respiration, catégories
+js/audio-track.js      lecture de la piste audio, qui sert aussi d'horloge à la séance
+js/guided-script.js    déroulé des sous-titres pendant la séance
+js/timer.js            minuteur sans dérive (basé sur un horodatage de fin)
+js/breathing.js        mascotte qui respire (rythme guidé ou ambiant)
+js/bell.js             cloche de bol chantant et sons de respiration
+js/ambience.js         musiques d'ambiance synthétisées et minuterie de sommeil
+js/history.js          historique, séries et statistiques
+js/achievements.js     badges et accessoires
+js/progress-view.js    écran « Mes progrès » : records, calendrier, badges
+js/reminder.js         rappel quotidien au format agenda (.ics)
+js/preferences.js      réglages mémorisés
+js/storage.js          accès au localStorage protégé contre les erreurs
+js/wake-lock.js        maintien de l'écran allumé
+js/format.js           mise en forme des durées
 ```

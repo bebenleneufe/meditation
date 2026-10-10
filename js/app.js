@@ -10,7 +10,7 @@ import { buildDailyReminderCalendar, downloadCalendarFile, isValidReminderTime }
 import { ACCESSORIES, findNewlyUnlockedBadges, listUnlockedAccessories } from './achievements.js';
 import { ProgressView, createBadgeIcon } from './progress-view.js';
 import { ALL_MEDITATIONS, CATEGORIES, FREE_MEDITATION_ID, audioTrackPath, findMeditation } from './meditations.js';
-import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences.js';
+import { AMBIENCE_AFTER_CHOICES, DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences.js';
 import { describeDuration, formatClock } from './format.js';
 
 const MINIMUM_RECORDED_SECONDS = 60;
@@ -19,6 +19,9 @@ const INTERVAL_BELL_VOLUME = 0.35;
 // The closing bells ring for several seconds; the music fades out underneath them.
 const AMBIENCE_FADE_ON_COMPLETE_SECONDS = 8;
 const AMBIENCE_FADE_ON_STOP_SECONDS = 1.5;
+// After a sleep timer, the music dims over a long stretch so the silence never startles.
+const AMBIENCE_SLEEP_FADE_SECONDS = 30;
+const CLOCK_TIME_FORMATTER = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
 function requireElement(rootElement, selector) {
   const element = rootElement.querySelector(selector);
@@ -45,7 +48,7 @@ class MeditationApp {
   #audioTrack;
   #breathingGuide;
   #bell = new Bell();
-  #ambience = new AmbiencePlayer();
+  #ambience;
   #history = new SessionHistory();
   #wakeLock = new ScreenWakeLock();
   #listenersController = new AbortController();
@@ -63,6 +66,10 @@ class MeditationApp {
       openProgressButton: requireElement(rootElement, '[data-open-progress]'),
       progressBackButton: requireElement(rootElement, '[data-progress-back]'),
       newBadges: requireElement(rootElement, '[data-new-badges]'),
+      linger: requireElement(rootElement, '[data-linger]'),
+      lingerText: requireElement(rootElement, '[data-linger-text]'),
+      lingerStopButton: requireElement(rootElement, '[data-linger-stop]'),
+      ambienceAfterField: requireElement(rootElement, '[data-ambience-after-field]'),
       accessoryUses: rootElement.querySelectorAll('[data-accessory-use]'),
       startDetail: requireElement(rootElement, '[data-start-detail]'),
       progressRing: requireElement(rootElement, '[data-progress-ring]'),
@@ -91,6 +98,7 @@ class MeditationApp {
       onComplete: () => this.#handleComplete(),
     };
     this.#timer = new MeditationTimer(sessionCallbacks);
+    this.#ambience = new AmbiencePlayer({ onLingerEnd: () => this.#renderLinger(null) });
     this.#audioTrack = new AudioTrackPlayer(sessionCallbacks);
     this.#breathingGuide = new BreathingGuide({
       circleElement: requireElement(rootElement, '[data-breath-circle]'),
@@ -143,6 +151,7 @@ class MeditationApp {
     this.#elements.reminderButton.addEventListener('click', () => this.#exportDailyReminder(), { signal });
     backButton.addEventListener('click', () => this.#showView('setup'), { signal });
     this.#elements.openProgressButton.addEventListener('click', () => this.#openProgress(), { signal });
+    this.#elements.lingerStopButton.addEventListener('click', () => this.#stopLingeringMusic(), { signal });
     this.#elements.progressBackButton.addEventListener('click', () => this.#showView('setup'), { signal });
     document.addEventListener('keydown', (event) => this.#handleKeydown(event), { signal });
     document.addEventListener('visibilitychange', () => this.#handleVisibilityChange(), { signal });
@@ -201,7 +210,9 @@ class MeditationApp {
       ? `${this.#readFormPreferences().durationMinutes} min`
       : describeMeditationLength(selectedMeditation);
     this.#elements.freeOptions.hidden = !isFreeMeditation;
-    this.#elements.ambienceVolumeField.hidden = this.#readFormPreferences().ambienceId === NO_AMBIENCE_ID;
+    const hasAmbience = this.#readFormPreferences().ambienceId !== NO_AMBIENCE_ID;
+    this.#elements.ambienceVolumeField.hidden = !hasAmbience;
+    this.#elements.ambienceAfterField.hidden = !hasAmbience;
     this.#elements.startDetail.textContent = `${selectedMeditation.title} · ${durationLabel}`;
   }
 
@@ -275,6 +286,9 @@ class MeditationApp {
       breathingGuideEnabled: formData.get('breathingGuide') !== null,
       ambienceId: formData.get('ambience') ?? DEFAULT_PREFERENCES.ambienceId,
       ambienceVolume: Number(formData.get('ambienceVolume')) || DEFAULT_PREFERENCES.ambienceVolume,
+      ambienceAfterMinutes: AMBIENCE_AFTER_CHOICES.includes(Number(formData.get('ambienceAfterMinutes')))
+        ? Number(formData.get('ambienceAfterMinutes'))
+        : DEFAULT_PREFERENCES.ambienceAfterMinutes,
       reminderTime: isValidReminderTime(formData.get('reminderTime'))
         ? formData.get('reminderTime')
         : DEFAULT_PREFERENCES.reminderTime,
@@ -289,6 +303,7 @@ class MeditationApp {
     formControls.namedItem('breathingGuide').checked = preferences.breathingGuideEnabled;
     formControls.namedItem('ambience').value = preferences.ambienceId;
     formControls.namedItem('ambienceVolume').value = String(preferences.ambienceVolume);
+    formControls.namedItem('ambienceAfterMinutes').value = String(preferences.ambienceAfterMinutes);
     formControls.namedItem('reminderTime').value = preferences.reminderTime;
   }
 
@@ -314,6 +329,7 @@ class MeditationApp {
       playsBreathTones: isBreathingExercise,
       script: isGuided ? new GuidedScript(meditation.cues) : null,
       usesAudioTrack: isGuided,
+      ambienceAfterSeconds: preferences.ambienceAfterMinutes * 60,
     };
   }
 
@@ -339,6 +355,7 @@ class MeditationApp {
       ? this.#audioTrack.start(audioTrackPath(session.meditation), session.durationSeconds)
       : null;
     this.#ambience.start(preferences.ambienceId, preferences.ambienceVolume);
+    this.#renderLinger(null);
     this.#renderAmbienceToggle();
 
     try {
@@ -418,7 +435,7 @@ class MeditationApp {
     if (!session.usesAudioTrack) {
       this.#bell.ring({ strikes: END_BELL_STRIKES });
     }
-    this.#ambience.stop({ fadeSeconds: AMBIENCE_FADE_ON_COMPLETE_SECONDS });
+    this.#releaseAmbience(session, AMBIENCE_FADE_ON_COMPLETE_SECONDS);
     this.#finishSession(session.durationSeconds);
   }
 
@@ -429,7 +446,7 @@ class MeditationApp {
     const clock = this.#activeClock();
     const meditatedSeconds = clock.elapsedSeconds;
     clock.stop();
-    this.#ambience.stop({ fadeSeconds: AMBIENCE_FADE_ON_STOP_SECONDS });
+    this.#releaseAmbience(this.#activeSession, AMBIENCE_FADE_ON_STOP_SECONDS);
     this.#finishSession(meditatedSeconds);
   }
 
@@ -529,6 +546,28 @@ class MeditationApp {
       console.error('Création du rappel impossible.', error);
       this.#elements.reminderStatus.textContent = "Le rappel n'a pas pu être créé. Réessayez, ou ajoutez-le à la main dans votre agenda.";
     }
+  }
+
+  #releaseAmbience(session, fadeSeconds) {
+    if (!this.#ambience.isPlaying || session.ambienceAfterSeconds === 0) {
+      this.#ambience.stop({ fadeSeconds });
+      return;
+    }
+    this.#ambience.stop({ fadeSeconds: AMBIENCE_SLEEP_FADE_SECONDS, delaySeconds: session.ambienceAfterSeconds });
+    const endTime = new Date(Date.now() + (session.ambienceAfterSeconds + AMBIENCE_SLEEP_FADE_SECONDS) * 1000);
+    this.#renderLinger(endTime);
+  }
+
+  #stopLingeringMusic() {
+    this.#ambience.stopLingering({ fadeSeconds: AMBIENCE_FADE_ON_STOP_SECONDS });
+    this.#renderLinger(null);
+  }
+
+  #renderLinger(endTime) {
+    this.#elements.linger.hidden = endTime === null;
+    this.#elements.lingerText.textContent = endTime === null
+      ? ''
+      : `La musique continue jusqu'à ${CLOCK_TIME_FORMATTER.format(endTime)} environ.`;
   }
 
   #toggleAmbienceMute() {

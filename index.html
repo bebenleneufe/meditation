@@ -164,6 +164,15 @@
             <span class="field__label">Volume</span>
             <input class="slider" type="range" id="ambience-volume" name="ambienceVolume" min="0.1" max="1" step="0.05" value="0.5">
           </label>
+          <label class="field field--inline" for="ambience-after" data-ambience-after-field>
+            <span class="field__label">Après la séance</span>
+            <select id="ambience-after" name="ambienceAfterMinutes">
+              <option value="0">La musique s'arrête</option>
+              <option value="15">Elle continue 15 min</option>
+              <option value="30">Elle continue 30 min</option>
+              <option value="60">Elle continue 1 h</option>
+            </select>
+          </label>
         </fieldset>
 
         <button type="submit" class="button button--start">
@@ -267,6 +276,10 @@
       <h2 class="done__title" data-done-title>Bravo !</h2>
       <p class="done__message" data-done-message></p>
       <div class="new-badges" data-new-badges hidden></div>
+      <div class="linger" data-linger hidden>
+        <p class="linger__text" data-linger-text></p>
+        <button type="button" class="button button--quiet" data-linger-stop>Arrêter la musique</button>
+      </div>
       <button type="button" class="button button--start" data-back-button>Retour</button>
     </section>
   </main>

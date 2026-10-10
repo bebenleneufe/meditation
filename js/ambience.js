@@ -8,6 +8,9 @@ export const AMBIENCES = Object.freeze([
   { id: 'nappe', label: 'Nappe douce' },
   { id: 'pluie', label: 'Pluie' },
   { id: 'vagues', label: 'Vagues' },
+  { id: 'feu', label: 'Feu de cheminée' },
+  { id: 'foret', label: 'Forêt' },
+  { id: 'bol', label: 'Bol tibétain' },
 ]);
 
 // Calibrated so that, at the default volume, the ambience sits well under the guiding voice.
@@ -139,25 +142,202 @@ function buildWaves(audioContext, output) {
   ];
 }
 
+// Fills a mono buffer sample by sample; used for sounds made of discrete events
+// (crackles, birdsong, bowl strikes) that are baked once and then looped.
+function createGeneratedBuffer(audioContext, seconds, fillSamples) {
+  const buffer = audioContext.createBuffer(1, Math.round(seconds * audioContext.sampleRate), audioContext.sampleRate);
+  fillSamples(buffer.getChannelData(0), audioContext.sampleRate);
+  return buffer;
+}
+
+function createLoopingBuffer(audioContext, buffer) {
+  const source = audioContext.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  return source;
+}
+
+function randomBetween(minimum, maximum) {
+  return minimum + Math.random() * (maximum - minimum);
+}
+
+function fillCrackles(samples, sampleRate) {
+  let cursor = 0;
+  while (cursor < samples.length) {
+    // Exponential gaps give the irregular rhythm of burning wood.
+    cursor += Math.round(-Math.log(1 - Math.random()) * 0.16 * sampleRate);
+    const length = Math.round(randomBetween(0.002, 0.012) * sampleRate);
+    const amplitude = randomBetween(0.15, 1);
+    for (let offset = 0; offset < length && cursor + offset < samples.length; offset += 1) {
+      samples[cursor + offset] += (Math.random() * 2 - 1) * amplitude * Math.exp(-6 * offset / length);
+    }
+  }
+}
+
+function fillBirdsong(samples, sampleRate) {
+  const totalSeconds = samples.length / sampleRate;
+  const callCount = 7;
+  for (let callIndex = 0; callIndex < callCount; callIndex += 1) {
+    // Calls stay clear of the buffer's end so none is cut at the loop seam.
+    let noteStart = randomBetween(0, totalSeconds - 2.5);
+    const noteCount = Math.round(randomBetween(2, 6));
+    const baseFrequency = randomBetween(2400, 4200);
+    for (let noteIndex = 0; noteIndex < noteCount; noteIndex += 1) {
+      const noteSeconds = randomBetween(0.05, 0.14);
+      const sweepHz = randomBetween(-900, 900);
+      const firstSample = Math.round(noteStart * sampleRate);
+      const noteLength = Math.round(noteSeconds * sampleRate);
+      let phase = 0;
+      for (let offset = 0; offset < noteLength; offset += 1) {
+        const progress = offset / noteLength;
+        phase += 2 * Math.PI * (baseFrequency + sweepHz * progress) / sampleRate;
+        samples[firstSample + offset] += 0.3 * Math.sin(Math.PI * progress) * Math.sin(phase);
+      }
+      noteStart += noteSeconds + randomBetween(0.04, 0.09);
+    }
+  }
+}
+
+const BOWL_STRIKE_PARTIALS = Object.freeze([
+  { frequencyRatio: 1, gain: 1, decaySeconds: 9 },
+  { frequencyRatio: 2.71, gain: 0.45, decaySeconds: 6 },
+  { frequencyRatio: 5.18, gain: 0.2, decaySeconds: 3.5 },
+  { frequencyRatio: 8.37, gain: 0.08, decaySeconds: 2 },
+]);
+const BOWL_FUNDAMENTAL_HZ = 146.83;
+
+function fillBowlStrikes(samples, sampleRate) {
+  const totalSeconds = samples.length / sampleRate;
+  const longestDecay = BOWL_STRIKE_PARTIALS[0].decaySeconds;
+  const strikeTimes = [randomBetween(1, 4), randomBetween(15, 19), randomBetween(29, totalSeconds - longestDecay)];
+  for (const strikeTime of strikeTimes) {
+    const firstSample = Math.round(strikeTime * sampleRate);
+    const strikeLength = Math.round(longestDecay * sampleRate);
+    for (let offset = 0; offset < strikeLength && firstSample + offset < samples.length; offset += 1) {
+      const seconds = offset / sampleRate;
+      const attack = Math.min(1, seconds / 0.01);
+      let value = 0;
+      for (const partial of BOWL_STRIKE_PARTIALS) {
+        value += partial.gain * Math.exp(Math.log(1e-4) * seconds / partial.decaySeconds)
+          * Math.sin(2 * Math.PI * BOWL_FUNDAMENTAL_HZ * partial.frequencyRatio * seconds);
+      }
+      samples[firstSample + offset] += 0.35 * attack * value;
+    }
+  }
+}
+
+function buildFire(audioContext, output) {
+  const roar = createLoopingNoise(audioContext, { isBrown: true });
+  const roarFilter = audioContext.createBiquadFilter();
+  roarFilter.type = 'lowpass';
+  roarFilter.frequency.value = 320;
+  const roarGain = audioContext.createGain();
+  roarGain.gain.value = 0.59;
+  roar.connect(roarFilter).connect(roarGain).connect(output);
+
+  const crackles = createLoopingBuffer(audioContext, createGeneratedBuffer(audioContext, 12, fillCrackles));
+  const crackleFilter = audioContext.createBiquadFilter();
+  crackleFilter.type = 'highpass';
+  crackleFilter.frequency.value = 1200;
+  const crackleGain = audioContext.createGain();
+  crackleGain.gain.value = 0.37;
+  crackles.connect(crackleFilter).connect(crackleGain).connect(output);
+
+  return [roar, crackles, modulate(audioContext, roarGain.gain, { frequencyHz: 0.13, depth: 0.08 })];
+}
+
+function buildForest(audioContext, output) {
+  const wind = createLoopingNoise(audioContext, { isBrown: false });
+  const windFilter = audioContext.createBiquadFilter();
+  windFilter.type = 'bandpass';
+  windFilter.frequency.value = 500;
+  windFilter.Q.value = 0.6;
+  const windGain = audioContext.createGain();
+  windGain.gain.value = 0.42;
+  wind.connect(windFilter).connect(windGain).connect(output);
+
+  const birds = createLoopingBuffer(audioContext, createGeneratedBuffer(audioContext, 24, fillBirdsong));
+  const birdFilter = audioContext.createBiquadFilter();
+  birdFilter.type = 'highpass';
+  birdFilter.frequency.value = 1500;
+  const birdGain = audioContext.createGain();
+  birdGain.gain.value = 1;
+  const birdReverb = createReverb(audioContext);
+  const birdReverbGain = audioContext.createGain();
+  birdReverbGain.gain.value = 0.25;
+  birds.connect(birdFilter).connect(birdGain).connect(output);
+  birdGain.connect(birdReverb).connect(birdReverbGain).connect(output);
+
+  return [
+    wind,
+    birds,
+    modulate(audioContext, windGain.gain, { frequencyHz: 0.05, depth: 0.18 }),
+    modulate(audioContext, windFilter.frequency, { frequencyHz: 0.03, depth: 200 }),
+  ];
+}
+
+function buildBowl(audioContext, output) {
+  const reverb = createReverb(audioContext);
+  const wetGain = audioContext.createGain();
+  wetGain.gain.value = 0.5;
+  reverb.connect(wetGain).connect(output);
+
+  const droneGain = audioContext.createGain();
+  droneGain.gain.value = 0.08;
+  droneGain.connect(output);
+  droneGain.connect(reverb);
+  const sources = [];
+  // Two close frequencies beat slowly against each other, like a bowl still humming.
+  for (const frequencyHz of [110, 110.6, 220.4]) {
+    const oscillator = audioContext.createOscillator();
+    oscillator.frequency.value = frequencyHz;
+    oscillator.connect(droneGain);
+    sources.push(oscillator);
+  }
+
+  const strikes = createLoopingBuffer(audioContext, createGeneratedBuffer(audioContext, 45, fillBowlStrikes));
+  const strikeGain = audioContext.createGain();
+  strikeGain.gain.value = 0.8;
+  strikes.connect(strikeGain).connect(output);
+  strikeGain.connect(reverb);
+  sources.push(strikes);
+  return sources;
+}
+
 export const AMBIENCE_BUILDERS = Object.freeze({
   nappe: buildPad,
   pluie: buildRain,
   vagues: buildWaves,
+  feu: buildFire,
+  foret: buildForest,
+  bol: buildBowl,
 });
 
 export function isKnownAmbience(ambienceId) {
   return AMBIENCES.some((ambience) => ambience.id === ambienceId);
 }
 
+// The music playing for the current session is one "layer". When a sleep timer
+// lets the music outlast the session, its layer keeps fading on its own while
+// a new session can start a fresh one.
 export class AmbiencePlayer {
   #audioContext = null;
-  #masterGain = null;
-  #sources = [];
+  #currentLayer = null;
+  #lingeringLayer = null;
   #targetGain = 0;
   #isMuted = false;
+  #onLingerEnd;
+
+  constructor({ onLingerEnd = () => {} } = {}) {
+    this.#onLingerEnd = onLingerEnd;
+  }
 
   get isPlaying() {
-    return this.#sources.length > 0;
+    return this.#currentLayer !== null;
+  }
+
+  get isLingering() {
+    return this.#lingeringLayer !== null;
   }
 
   get isMuted() {
@@ -167,6 +347,7 @@ export class AmbiencePlayer {
   // Must be called synchronously from the click that starts the session (autoplay rules).
   start(ambienceId, volume) {
     this.stop({ fadeSeconds: 0 });
+    this.stopLingering({ fadeSeconds: 0 });
     const buildAmbience = AMBIENCE_BUILDERS[ambienceId];
     if (buildAmbience === undefined) {
       return;
@@ -175,39 +356,41 @@ export class AmbiencePlayer {
       const audioContext = this.#ensureAudioContext();
       this.#isMuted = false;
       this.#targetGain = Math.min(1, Math.max(0, volume)) * MAXIMUM_GAIN;
-      this.#masterGain = audioContext.createGain();
-      this.#masterGain.gain.setValueAtTime(0, audioContext.currentTime);
-      this.#masterGain.gain.linearRampToValueAtTime(this.#targetGain, audioContext.currentTime + FADE_IN_SECONDS);
-      this.#masterGain.connect(audioContext.destination);
-      this.#sources = buildAmbience(audioContext, this.#masterGain);
-      for (const source of this.#sources) {
+      const masterGain = audioContext.createGain();
+      masterGain.gain.setValueAtTime(0, audioContext.currentTime);
+      masterGain.gain.linearRampToValueAtTime(this.#targetGain, audioContext.currentTime + FADE_IN_SECONDS);
+      masterGain.connect(audioContext.destination);
+      const sources = buildAmbience(audioContext, masterGain);
+      for (const source of sources) {
         source.start();
       }
+      this.#currentLayer = { masterGain, sources };
     } catch (error) {
       console.warn("Musique d'ambiance indisponible.", error);
-      this.#sources = [];
+      this.#currentLayer = null;
     }
   }
 
-  // Sources are stopped at a scheduled audio time rather than with a timer,
-  // so nothing is left to clean up if the page goes away during the fade.
-  stop({ fadeSeconds }) {
-    if (this.#audioContext === null || this.#masterGain === null) {
+  // With a delay, the music keeps playing after the session (sleep timer) and fades out later.
+  stop({ fadeSeconds, delaySeconds = 0 }) {
+    const layer = this.#currentLayer;
+    if (layer === null) {
       return;
     }
-    const stopTime = this.#audioContext.currentTime + fadeSeconds;
-    const masterGain = this.#masterGain;
-    masterGain.gain.cancelScheduledValues(this.#audioContext.currentTime);
-    masterGain.gain.setValueAtTime(masterGain.gain.value, this.#audioContext.currentTime);
-    masterGain.gain.linearRampToValueAtTime(0, stopTime);
-    for (const source of this.#sources) {
-      source.addEventListener('ended', () => source.disconnect(), { once: true });
-      source.stop(stopTime);
+    this.#currentLayer = null;
+    if (delaySeconds > 0) {
+      this.#lingeringLayer = layer;
     }
-    const lastSource = this.#sources.at(-1);
-    lastSource?.addEventListener('ended', () => masterGain.disconnect(), { once: true });
-    this.#sources = [];
-    this.#masterGain = null;
+    this.#releaseLayer(layer, { fadeSeconds, delaySeconds });
+  }
+
+  stopLingering({ fadeSeconds }) {
+    const layer = this.#lingeringLayer;
+    if (layer === null) {
+      return;
+    }
+    this.#lingeringLayer = null;
+    this.#releaseLayer(layer, { fadeSeconds, delaySeconds: 0 });
   }
 
   async pause() {
@@ -227,18 +410,20 @@ export class AmbiencePlayer {
   }
 
   toggleMute() {
-    if (this.#audioContext === null || this.#masterGain === null) {
+    if (this.#audioContext === null || this.#currentLayer === null) {
       return;
     }
     this.#isMuted = !this.#isMuted;
+    const { gain } = this.#currentLayer.masterGain;
     const now = this.#audioContext.currentTime;
-    this.#masterGain.gain.cancelScheduledValues(now);
-    this.#masterGain.gain.setValueAtTime(this.#masterGain.gain.value, now);
-    this.#masterGain.gain.linearRampToValueAtTime(this.#isMuted ? 0 : this.#targetGain, now + MUTE_FADE_SECONDS);
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(gain.value, now);
+    gain.linearRampToValueAtTime(this.#isMuted ? 0 : this.#targetGain, now + MUTE_FADE_SECONDS);
   }
 
   async dispose() {
     this.stop({ fadeSeconds: 0 });
+    this.stopLingering({ fadeSeconds: 0 });
     try {
       await this.#audioContext?.close();
     } catch (error) {
@@ -246,6 +431,33 @@ export class AmbiencePlayer {
     } finally {
       this.#audioContext = null;
     }
+  }
+
+  // Everything is scheduled on the audio clock rather than with timers,
+  // so there is nothing left to clear if the page goes away mid-fade.
+  #releaseLayer(layer, { fadeSeconds, delaySeconds }) {
+    const now = this.#audioContext.currentTime;
+    const fadeStartTime = now + delaySeconds;
+    const stopTime = fadeStartTime + fadeSeconds;
+    const { gain } = layer.masterGain;
+    const currentLevel = gain.value;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(currentLevel, now);
+    gain.setValueAtTime(currentLevel, fadeStartTime);
+    gain.linearRampToValueAtTime(0, stopTime);
+    for (const source of layer.sources) {
+      source.addEventListener('ended', () => source.disconnect(), { once: true });
+      source.stop(stopTime);
+    }
+    layer.sources.at(-1)?.addEventListener('ended', () => {
+      layer.masterGain.disconnect();
+      if (this.#lingeringLayer === layer) {
+        this.#lingeringLayer = null;
+      }
+      if (delaySeconds > 0) {
+        this.#onLingerEnd();
+      }
+    }, { once: true });
   }
 
   #ensureAudioContext() {
