@@ -1,5 +1,6 @@
 import { MeditationTimer } from './timer.js';
 import { AudioTrackPlayer } from './audio-track.js';
+import { AMBIENCES, AmbiencePlayer, NO_AMBIENCE_ID } from './ambience.js';
 import { Bell } from './bell.js';
 import { BREATHING_MODES, BreathingGuide } from './breathing.js';
 import { GuidedScript } from './guided-script.js';
@@ -12,6 +13,9 @@ import { describeDuration, formatClock } from './format.js';
 const MINIMUM_RECORDED_SECONDS = 60;
 const END_BELL_STRIKES = 3;
 const INTERVAL_BELL_VOLUME = 0.35;
+// The closing bells ring for several seconds; the music fades out underneath them.
+const AMBIENCE_FADE_ON_COMPLETE_SECONDS = 8;
+const AMBIENCE_FADE_ON_STOP_SECONDS = 1.5;
 
 function requireElement(rootElement, selector) {
   const element = rootElement.querySelector(selector);
@@ -38,6 +42,7 @@ class MeditationApp {
   #audioTrack;
   #breathingGuide;
   #bell = new Bell();
+  #ambience = new AmbiencePlayer();
   #history = new SessionHistory();
   #wakeLock = new ScreenWakeLock();
   #listenersController = new AbortController();
@@ -55,6 +60,9 @@ class MeditationApp {
       setupForm: requireElement(rootElement, '[data-setup-form]'),
       meditationList: requireElement(rootElement, '[data-meditation-list]'),
       freeOptions: requireElement(rootElement, '[data-free-options]'),
+      ambienceList: requireElement(rootElement, '[data-ambience-list]'),
+      ambienceVolumeField: requireElement(rootElement, '[data-ambience-volume-field]'),
+      ambienceToggle: requireElement(rootElement, '[data-ambience-toggle]'),
       sessionTitle: requireElement(rootElement, '[data-session-title]'),
       cue: requireElement(rootElement, '[data-cue]'),
       clock: requireElement(rootElement, '[data-clock]'),
@@ -82,6 +90,7 @@ class MeditationApp {
   init() {
     this.#elements.greeting.textContent = greetingForHour(new Date().getHours());
     this.#renderMeditationOptions();
+    this.#renderAmbienceOptions();
     this.#applyPreferencesToForm(loadPreferences());
     this.#renderOptionGroups();
     this.#renderStats();
@@ -95,6 +104,7 @@ class MeditationApp {
     this.#breathingGuide.stop();
     this.#wakeLock.release();
     this.#bell.dispose();
+    this.#ambience.dispose();
   }
 
   #bindEvents() {
@@ -108,6 +118,7 @@ class MeditationApp {
     setupForm.addEventListener('change', () => this.#handleSetupChange(), { signal });
     pauseButton.addEventListener('click', () => this.#togglePause(), { signal });
     stopButton.addEventListener('click', () => this.#stopSessionEarly(), { signal });
+    this.#elements.ambienceToggle.addEventListener('click', () => this.#toggleAmbienceMute(), { signal });
     backButton.addEventListener('click', () => this.#showView('setup'), { signal });
     document.addEventListener('keydown', (event) => this.#handleKeydown(event), { signal });
     document.addEventListener('visibilitychange', () => this.#handleVisibilityChange(), { signal });
@@ -127,6 +138,23 @@ class MeditationApp {
     this.#elements.meditationList.replaceChildren(fragment);
   }
 
+  #renderAmbienceOptions() {
+    const fragment = document.createDocumentFragment();
+    for (const ambience of AMBIENCES) {
+      const chipElement = document.createElement('label');
+      const inputElement = document.createElement('input');
+      const textElement = document.createElement('span');
+      chipElement.className = 'chip';
+      inputElement.type = 'radio';
+      inputElement.name = 'ambience';
+      inputElement.value = ambience.id;
+      textElement.textContent = ambience.label;
+      chipElement.append(inputElement, textElement);
+      fragment.append(chipElement);
+    }
+    this.#elements.ambienceList.replaceChildren(fragment);
+  }
+
   #renderOptionGroups() {
     const selectedMeditation = this.#readSelectedMeditation();
     const isFreeMeditation = selectedMeditation.id === FREE_MEDITATION_ID;
@@ -134,6 +162,7 @@ class MeditationApp {
       ? `${this.#readFormPreferences().durationMinutes} min`
       : describeMeditationLength(selectedMeditation);
     this.#elements.freeOptions.hidden = !isFreeMeditation;
+    this.#elements.ambienceVolumeField.hidden = this.#readFormPreferences().ambienceId === NO_AMBIENCE_ID;
     this.#elements.startDetail.textContent = `${selectedMeditation.title} · ${durationLabel}`;
   }
 
@@ -155,6 +184,8 @@ class MeditationApp {
       durationMinutes: durationMinutes > 0 ? durationMinutes : DEFAULT_PREFERENCES.durationMinutes,
       intervalMinutes: Number(formData.get('interval')) || 0,
       breathingGuideEnabled: formData.get('breathingGuide') !== null,
+      ambienceId: formData.get('ambience') ?? DEFAULT_PREFERENCES.ambienceId,
+      ambienceVolume: Number(formData.get('ambienceVolume')) || DEFAULT_PREFERENCES.ambienceVolume,
     };
   }
 
@@ -164,6 +195,8 @@ class MeditationApp {
     formControls.namedItem('duration').value = String(preferences.durationMinutes);
     formControls.namedItem('interval').value = String(preferences.intervalMinutes);
     formControls.namedItem('breathingGuide').checked = preferences.breathingGuideEnabled;
+    formControls.namedItem('ambience').value = preferences.ambienceId;
+    formControls.namedItem('ambienceVolume').value = String(preferences.ambienceVolume);
   }
 
   #createSession(meditation, preferences) {
@@ -194,13 +227,16 @@ class MeditationApp {
   async #startSession() {
     this.#timer.stop();
     this.#audioTrack.stop();
-    const session = this.#createSession(this.#readSelectedMeditation(), this.#readFormPreferences());
+    const preferences = this.#readFormPreferences();
+    const session = this.#createSession(this.#readSelectedMeditation(), preferences);
     this.#activeSession = session;
 
     // Started before the first await: browsers only allow playback inside the click itself.
     const trackPlayback = session.usesAudioTrack
       ? this.#audioTrack.start(audioTrackPath(session.meditation), session.durationSeconds)
       : null;
+    this.#ambience.start(preferences.ambienceId, preferences.ambienceVolume);
+    this.#renderAmbienceToggle();
 
     try {
       await this.#bell.unlock();
@@ -279,6 +315,7 @@ class MeditationApp {
     if (!session.usesAudioTrack) {
       this.#bell.ring({ strikes: END_BELL_STRIKES });
     }
+    this.#ambience.stop({ fadeSeconds: AMBIENCE_FADE_ON_COMPLETE_SECONDS });
     this.#finishSession(session.durationSeconds);
   }
 
@@ -289,6 +326,7 @@ class MeditationApp {
     const clock = this.#activeClock();
     const meditatedSeconds = clock.elapsedSeconds;
     clock.stop();
+    this.#ambience.stop({ fadeSeconds: AMBIENCE_FADE_ON_STOP_SECONDS });
     this.#finishSession(meditatedSeconds);
   }
 
@@ -317,12 +355,14 @@ class MeditationApp {
     const clock = this.#activeClock();
     if (clock.isRunning) {
       clock.pause();
+      this.#ambience.pause();
       this.#breathingGuide.pause();
       this.#wakeLock.release();
       this.#renderPausedState(true);
       return;
     }
     clock.resume();
+    this.#ambience.resume();
     this.#breathingGuide.resume();
     this.#wakeLock.acquire();
     this.#renderPausedState(false);
@@ -338,6 +378,8 @@ class MeditationApp {
       this.#togglePause();
     } else if (event.key === 'Escape') {
       this.#stopSessionEarly();
+    } else if (event.key === 'm' || event.key === 'M') {
+      this.#toggleAmbienceMute();
     }
   }
 
@@ -346,6 +388,21 @@ class MeditationApp {
     if (document.visibilityState === 'visible' && this.#activeSession !== null && this.#activeClock().isRunning) {
       this.#wakeLock.acquire();
     }
+  }
+
+  #toggleAmbienceMute() {
+    if (!this.#ambience.isPlaying) {
+      return;
+    }
+    this.#ambience.toggleMute();
+    this.#renderAmbienceToggle();
+  }
+
+  #renderAmbienceToggle() {
+    const { ambienceToggle } = this.#elements;
+    ambienceToggle.hidden = !this.#ambience.isPlaying;
+    ambienceToggle.textContent = this.#ambience.isMuted ? 'Remettre la musique' : 'Couper la musique';
+    ambienceToggle.setAttribute('aria-pressed', String(this.#ambience.isMuted));
   }
 
   #renderProgress(completedFraction) {

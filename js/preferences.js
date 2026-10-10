@@ -1,4 +1,5 @@
 import { readJson, writeJson } from './storage.js';
+import { isKnownAmbience } from './ambience.js';
 
 const PREFERENCES_KEY = 'meditation.preferences.v1';
 
@@ -7,6 +8,8 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   durationMinutes: 10,
   intervalMinutes: 0,
   breathingGuideEnabled: true,
+  ambienceId: 'nappe',
+  ambienceVolume: 0.5,
 });
 
 function isPositiveNumber(candidate) {
@@ -33,6 +36,14 @@ function sanitizePreferences(storedPreferences) {
   }
   if (typeof storedPreferences.breathingGuideEnabled === 'boolean') {
     sanitizedPreferences.breathingGuideEnabled = storedPreferences.breathingGuideEnabled;
+  }
+  if (isKnownAmbience(storedPreferences.ambienceId)) {
+    sanitizedPreferences.ambienceId = storedPreferences.ambienceId;
+  }
+  if (typeof storedPreferences.ambienceVolume === 'number'
+    && storedPreferences.ambienceVolume >= 0
+    && storedPreferences.ambienceVolume <= 1) {
+    sanitizedPreferences.ambienceVolume = storedPreferences.ambienceVolume;
   }
   return sanitizedPreferences;
 }

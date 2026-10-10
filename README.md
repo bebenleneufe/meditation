@@ -16,6 +16,7 @@ Une petite appli de méditation, juste pour moi. Pas de compte, pas de pub, pas 
   - durée de 1 à 30 minutes ;
   - cloche d'intervalle en option ;
   - guide de respiration en option (4 s d'inspiration, 6 s d'expiration).
+- **Musique d'ambiance** au choix (nappe douce, pluie, vagues), avec un volume réglable. Elle est synthétisée en direct par la Web Audio API, donc sans fichier et sans coupure à la boucle. On peut la couper pendant la séance (bouton ou touche `M`).
 - **Cloche de bol chantant**, synthétisée avec la Web Audio API : un coup au début, trois à la fin.
 - **Statistiques** : nombre de séances, minutes au total, jours d'affilée. Elles sont enregistrées dans le `localStorage`.
   Une séance de moins d'une minute ne compte pas.
@@ -75,6 +76,7 @@ js/guided-script.js déroulé des consignes pendant la séance
 js/audio-track.js   lecture de la piste audio, qui sert aussi d'horloge à la séance
 audio/              pistes MP3 générées (une par méditation guidée)
 tools/              script de génération des pistes
+js/ambience.js      musique d'ambiance synthétisée
 js/breathing.js     cercle de respiration (rythmé ou ambiant)
 js/history.js       historique et série de jours
 js/preferences.js   réglages mémorisés
