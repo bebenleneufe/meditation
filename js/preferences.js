@@ -3,19 +3,29 @@ import { readJson, writeJson } from './storage.js';
 const PREFERENCES_KEY = 'meditation.preferences.v1';
 
 export const DEFAULT_PREFERENCES = Object.freeze({
+  meditationId: 'pause-respiration',
   durationMinutes: 10,
   intervalMinutes: 0,
   breathingGuideEnabled: true,
+  voiceEnabled: true,
+  voiceName: null,
 });
 
 function isPositiveNumber(candidate) {
   return typeof candidate === 'number' && Number.isFinite(candidate) && candidate > 0;
 }
 
+function isNonEmptyString(candidate) {
+  return typeof candidate === 'string' && candidate !== '';
+}
+
 function sanitizePreferences(storedPreferences) {
   const sanitizedPreferences = {};
   if (storedPreferences === null || typeof storedPreferences !== 'object') {
     return sanitizedPreferences;
+  }
+  if (isNonEmptyString(storedPreferences.meditationId)) {
+    sanitizedPreferences.meditationId = storedPreferences.meditationId;
   }
   if (isPositiveNumber(storedPreferences.durationMinutes)) {
     sanitizedPreferences.durationMinutes = storedPreferences.durationMinutes;
@@ -25,6 +35,12 @@ function sanitizePreferences(storedPreferences) {
   }
   if (typeof storedPreferences.breathingGuideEnabled === 'boolean') {
     sanitizedPreferences.breathingGuideEnabled = storedPreferences.breathingGuideEnabled;
+  }
+  if (typeof storedPreferences.voiceEnabled === 'boolean') {
+    sanitizedPreferences.voiceEnabled = storedPreferences.voiceEnabled;
+  }
+  if (isNonEmptyString(storedPreferences.voiceName)) {
+    sanitizedPreferences.voiceName = storedPreferences.voiceName;
   }
   return sanitizedPreferences;
 }

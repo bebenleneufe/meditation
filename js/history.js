@@ -42,8 +42,8 @@ function computeStreakDays(sessions, today) {
 export class SessionHistory {
   #sessions = loadSessions();
 
-  record(durationSeconds, completedAt = new Date()) {
-    this.#sessions = [...this.#sessions, { durationSeconds, completedAt: completedAt.toISOString() }];
+  record({ durationSeconds, meditationId, completedAt = new Date() }) {
+    this.#sessions = [...this.#sessions, { durationSeconds, meditationId, completedAt: completedAt.toISOString() }];
     writeJson(SESSIONS_KEY, this.#sessions);
   }
 

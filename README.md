@@ -4,10 +4,18 @@ Une petite appli de méditation, juste pour moi. Pas de compte, pas de pub, pas 
 
 ## Ce qu'elle fait
 
-- **Minuteur** : 1, 3, 5, 10, 15, 20 ou 30 minutes.
+- **Méditations guidées** à voix haute, avec les consignes aussi affichées à l'écran :
+  - Pause respiration (3 min)
+  - Ancrage dans le souffle (10 min)
+  - Scan corporel (12 min)
+  - Observer les pensées (8 min)
+  - Bienveillance (10 min)
+- **Voix d'homme posée** : l'appli cherche une voix française masculine (Thomas sur Mac et iPhone, Henri ou Paul sur Windows et Edge…). La lecture est lente et un peu grave. On peut choisir une autre voix et l'écouter avant la séance.
+- **Méditation libre**, sans voix :
+  - durée de 1 à 30 minutes ;
+  - cloche d'intervalle en option ;
+  - guide de respiration en option (4 s d'inspiration, 6 s d'expiration).
 - **Cloche de bol chantant**, synthétisée avec la Web Audio API : un coup au début, trois à la fin.
-- **Cloche d'intervalle** en option, plus douce, pour revenir au souffle.
-- **Guide de respiration** en option : cercle animé, 4 s d'inspiration et 6 s d'expiration.
 - **Statistiques** : nombre de séances, minutes au total, jours d'affilée. Elles sont enregistrées dans le `localStorage`.
   Une séance de moins d'une minute ne compte pas.
 - Les réglages sont mémorisés d'une fois sur l'autre.
@@ -34,7 +42,10 @@ styles.css          thème clair/sombre, animation du cercle
 js/app.js           orchestration : événements, écrans, cycle de vie
 js/timer.js         minuteur sans dérive (basé sur un horodatage de fin)
 js/bell.js          synthèse de la cloche
-js/breathing.js     guide de respiration
+js/meditations.js   textes des méditations guidées et moment de chaque consigne
+js/guided-script.js déroulé des consignes pendant la séance
+js/narrator.js      voix (Web Speech API) et choix d'une voix masculine
+js/breathing.js     cercle de respiration (rythmé ou ambiant)
 js/history.js       historique et série de jours
 js/preferences.js   réglages mémorisés
 js/storage.js       accès au localStorage protégé contre les erreurs

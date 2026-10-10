@@ -18,33 +18,55 @@
 
       <form class="setup-form" data-setup-form>
         <fieldset class="field">
-          <legend>Durée (minutes)</legend>
-          <div class="chips">
-            <label class="chip"><input type="radio" name="duration" value="1"><span>1</span></label>
-            <label class="chip"><input type="radio" name="duration" value="3"><span>3</span></label>
-            <label class="chip"><input type="radio" name="duration" value="5"><span>5</span></label>
-            <label class="chip"><input type="radio" name="duration" value="10" checked><span>10</span></label>
-            <label class="chip"><input type="radio" name="duration" value="15"><span>15</span></label>
-            <label class="chip"><input type="radio" name="duration" value="20"><span>20</span></label>
-            <label class="chip"><input type="radio" name="duration" value="30"><span>30</span></label>
-          </div>
+          <legend>Méditation</legend>
+          <div class="meditation-list" data-meditation-list></div>
         </fieldset>
 
-        <label class="field field--inline">
-          <span>Cloche d'intervalle</span>
-          <select name="interval">
-            <option value="0">Aucune</option>
-            <option value="1">Toutes les minutes</option>
-            <option value="2">Toutes les 2 min</option>
-            <option value="5">Toutes les 5 min</option>
-            <option value="10">Toutes les 10 min</option>
-          </select>
-        </label>
+        <div class="option-group" data-guided-options>
+          <label class="field field--inline toggle">
+            <span>Voix</span>
+            <input type="checkbox" id="voice-enabled" name="voiceEnabled" checked>
+          </label>
+          <div class="field voice-picker" data-voice-picker>
+            <label for="voice-name">Choix de la voix</label>
+            <div class="voice-picker__row">
+              <select id="voice-name" name="voiceName" data-voice-select></select>
+              <button type="button" class="button button--small" data-voice-preview>Écouter</button>
+            </div>
+          </div>
+          <p class="note" data-voice-unavailable hidden>Ce navigateur ne propose pas de voix française : les consignes s'afficheront à l'écran.</p>
+        </div>
 
-        <label class="field field--inline toggle">
-          <span>Guide de respiration</span>
-          <input type="checkbox" name="breathingGuide" checked>
-        </label>
+        <div class="option-group" data-free-options hidden>
+          <fieldset class="field">
+            <legend>Durée (minutes)</legend>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="duration" value="1"><span>1</span></label>
+              <label class="chip"><input type="radio" name="duration" value="3"><span>3</span></label>
+              <label class="chip"><input type="radio" name="duration" value="5"><span>5</span></label>
+              <label class="chip"><input type="radio" name="duration" value="10" checked><span>10</span></label>
+              <label class="chip"><input type="radio" name="duration" value="15"><span>15</span></label>
+              <label class="chip"><input type="radio" name="duration" value="20"><span>20</span></label>
+              <label class="chip"><input type="radio" name="duration" value="30"><span>30</span></label>
+            </div>
+          </fieldset>
+
+          <label class="field field--inline">
+            <span>Cloche d'intervalle</span>
+            <select id="interval" name="interval">
+              <option value="0">Aucune</option>
+              <option value="1">Toutes les minutes</option>
+              <option value="2">Toutes les 2 min</option>
+              <option value="5">Toutes les 5 min</option>
+              <option value="10">Toutes les 10 min</option>
+            </select>
+          </label>
+
+          <label class="field field--inline toggle">
+            <span>Guide de respiration</span>
+            <input type="checkbox" id="breathing-guide" name="breathingGuide" checked>
+          </label>
+        </div>
 
         <button type="submit" class="button button--primary">Commencer</button>
       </form>
@@ -59,10 +81,12 @@
     </section>
 
     <section class="view view--session" data-view="session" hidden>
+      <p class="session-title" data-session-title></p>
       <div class="breath">
         <div class="breath__circle" data-breath-circle></div>
         <p class="breath__label" data-breath-label aria-live="polite"></p>
       </div>
+      <p class="cue" data-cue aria-live="polite"></p>
       <p class="clock" data-clock>10:00</p>
       <div class="controls">
         <button type="button" class="button" data-pause-button>Pause</button>
@@ -77,5 +101,18 @@
       <button type="button" class="button button--primary" data-back-button>Retour</button>
     </section>
   </main>
+
+  <template data-meditation-option-template>
+    <label class="meditation-option">
+      <input type="radio" name="meditation">
+      <span class="meditation-option__body">
+        <span class="meditation-option__heading">
+          <span class="meditation-option__title"></span>
+          <span class="meditation-option__duration"></span>
+        </span>
+        <span class="meditation-option__summary"></span>
+      </span>
+    </label>
+  </template>
 </body>
 </html>
