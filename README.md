@@ -37,23 +37,29 @@ Pour l'avoir sur le téléphone, le plus simple est d'activer **GitHub Pages** s
 
 ## Régénérer les pistes audio
 
-Les pistes sont produites par [Piper](https://github.com/rhasspy/piper), une synthèse vocale libre qui tourne hors ligne, avec la voix **tom** (fr_FR, qualité medium).
+Les pistes sont produites par [Piper](https://github.com/rhasspy/piper), une synthèse vocale libre qui tourne hors ligne.
+La voix est **pierre** du modèle `fr_FR-upmc-medium`, légèrement ralentie et abaissée d'un demi-ton. Ces réglages sont ceux par défaut du script.
 Les textes et le moment de chaque consigne viennent de `js/meditations.js`. Après une modification de ce fichier :
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt
-curl -LO https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/tom/medium/fr_FR-tom-medium.onnx
-curl -LO https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/tom/medium/fr_FR-tom-medium.onnx.json
-.venv/bin/python tools/generate_audio.py --voice fr_FR-tom-medium.onnx   # ou --only scan-corporel
+curl -LO https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/upmc/medium/fr_FR-upmc-medium.onnx
+curl -LO https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/upmc/medium/fr_FR-upmc-medium.onnx.json
+.venv/bin/python tools/generate_audio.py --voice fr_FR-upmc-medium.onnx   # ou --only scan-corporel
 ```
 
-Il faut aussi `node` et `ffmpeg`. Le script refuse d'écrire une piste si une consigne lue déborde sur la suivante : il indique laquelle, et il suffit d'espacer les `atSeconds`.
+Il faut aussi `node` et `ffmpeg` (compilé avec rubberband, pour la hauteur de voix).
+Le script refuse d'écrire une piste si une consigne lue déborde sur la suivante : il indique laquelle, et il suffit d'espacer les `atSeconds`.
 
-Pour essayer une autre voix, il suffit de passer un autre modèle Piper à `--voice`.
+Réglages possibles :
+- `--length-scale` : débit, plus grand = plus lent (1.1 par défaut) ;
+- `--pitch` : hauteur en demi-tons (-1 par défaut) ;
+- `--voice` et `--speaker` : un autre modèle ou une autre voix Piper.
 
-Quelques mots sont mal prononcés par la voix tom (« coudes », « pause », « adressez ») : les textes les évitent.
+Chaque piste a été vérifiée en la faisant transcrire par Whisper. Les textes évitent des mots que la voix pierre prononce mal :
+« Inspirez » seul, « se calmer », « s'apaiser », « fraîcheur », « tibias », « Sentez », « joues », « inquiétude », « projet » en fin de liste, et « aisance ».
 
-Crédits : voix « tom » de Piper, entraînée sur le [jeu de données de Tjiho](https://git.bksp.space/Tjiho/French-tts-model-piper) (licence AGPLv3).
+Crédits : voix « pierre » de Piper, entraînée sur le [corpus UPMC Pierre](https://github.com/marytts/upmc-pierre-data) (licence CC BY-SA 4.0).
 
 ## Organisation
 
