@@ -8,7 +8,7 @@ Une petite appli de méditation, juste pour moi. Pas de compte, pas de pub, pas 
 - **Méditations guidées**, lues par une voix d'homme posée, avec les consignes affichées à l'écran : pause respiration, ancrage dans le souffle, scan corporel, observer les pensées, bienveillance, apaiser le stress, gratitude, marche consciente, réveil en douceur.
 - **Express** : minute de calme, recentrage en deux minutes.
 - **Respiration** : cohérence cardiaque, respiration carrée, 4-7-8. La mascotte suit le rythme, avec un son montant à l'inspiration et descendant à l'expiration pour pratiquer les yeux fermés.
-- **Sommeil** : glisser vers le sommeil (15 min), se rendormir la nuit (8 min), lâcher la journée (10 min), scan du corps pour dormir (20 min) — la voix s'estompe peu à peu, sans cloche finale — et une sieste réparatrice (20 min) qui se termine par un réveil en douceur à la cloche.
+- **Sommeil** : souffle du soir (5 min), détente musculaire (7 min), se rendormir la nuit (8 min), lâcher la journée (10 min), glisser vers le sommeil (15 min), scan du corps pour dormir (20 min). La voix s'estompe peu à peu, sans cloche finale. Et une sieste réparatrice (20 min) qui se termine par un réveil en douceur à la cloche.
 - **En silence** : durée au choix, cloche d'intervalle et guide de respiration en option.
 
 Chaque méditation guidée est une seule piste MP3 (cloche, consignes, silences, cloches de fin) : elle continue de jouer quand le téléphone se verrouille. Si elle ne se charge pas, la séance continue avec les consignes à l'écran.
