@@ -466,10 +466,10 @@ class MeditationApp {
       this.#renderStats();
     }
     this.#renderNewBadges(newBadges);
-    // A sleep session must not end on bouncing confetti: the screen stays still and dim.
-    const isSleepSession = meditation.category === 'sommeil';
-    this.#elements.doneView.classList.toggle('is-quiet', isSleepSession);
-    this.#elements.doneTitle.textContent = this.#describeDoneTitle(isRecorded, isSleepSession);
+    // A session meant to end in sleep must not finish on bouncing confetti: the screen stays still and dim.
+    const endsInSleep = meditation.closingBells === false;
+    this.#elements.doneView.classList.toggle('is-quiet', endsInSleep || meditation.category === 'sommeil');
+    this.#elements.doneTitle.textContent = this.#describeDoneTitle(meditation, isRecorded, endsInSleep);
     this.#elements.doneMessage.textContent = isRecorded
       ? `« ${meditation.title} » : ${describeDuration(meditatedSeconds)} de pratique.`
       : "Séance de moins d'une minute : elle n'a pas été enregistrée.";
@@ -486,8 +486,11 @@ class MeditationApp {
     }
   }
 
-  #describeDoneTitle(isRecorded, isSleepSession) {
-    if (isSleepSession) {
+  #describeDoneTitle(meditation, isRecorded, endsInSleep) {
+    if (meditation.doneTitle !== undefined) {
+      return meditation.doneTitle;
+    }
+    if (endsInSleep) {
       return 'Bonne nuit';
     }
     return isRecorded ? 'Bravo !' : 'À bientôt';

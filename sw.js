@@ -1,8 +1,10 @@
 // App files are served network-first so a deploy shows up on the next launch,
 // with the cache as the offline fallback. Audio is cached whole after a first
-// play, then served in byte ranges: iOS refuses to play media without them.
+// play, and served from that cache in byte ranges only when offline: iOS refuses
+// media without ranges, and Chrome aborts a playback whose ranges mix network
+// responses with ones built here, so a single playback never mixes the two.
 
-const SHELL_CACHE = 'shell-v3';
+const SHELL_CACHE = 'shell-v4';
 const AUDIO_CACHE = 'audio-v1';
 const FONT_CACHE = 'fonts-v1';
 const KNOWN_CACHES = new Set([SHELL_CACHE, AUDIO_CACHE, FONT_CACHE]);
@@ -108,18 +110,25 @@ async function serveFromCacheFirst(request, cacheName) {
 async function serveAudio(event) {
   const { request } = event;
   const cache = await caches.open(AUDIO_CACHE);
-  const cachedResponse = await cache.match(request.url);
-  if (cachedResponse !== undefined) {
-    return createRangeResponse(request, cachedResponse);
+  try {
+    const networkResponse = await fetch(request);
+    // A ranged response cannot be stored, so the whole file is fetched once on the side.
+    event.waitUntil(cacheWholeFileIfMissing(cache, request.url));
+    return networkResponse;
+  } catch (error) {
+    const cachedResponse = await cache.match(request.url);
+    if (cachedResponse !== undefined) {
+      return createRangeResponse(request, cachedResponse);
+    }
+    throw error;
   }
-  // A ranged response cannot be stored, so the whole file is fetched once on the side.
-  event.waitUntil(cacheWholeFile(cache, request.url));
-  return fetch(request);
 }
 
-async function cacheWholeFile(cache, fileUrl) {
+async function cacheWholeFileIfMissing(cache, fileUrl) {
   try {
-    await cache.add(fileUrl);
+    if ((await cache.match(fileUrl)) === undefined) {
+      await cache.add(fileUrl);
+    }
   } catch (error) {
     console.warn(`Mise en cache impossible : ${fileUrl}`, error);
   }
