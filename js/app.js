@@ -9,6 +9,7 @@ import { ScreenWakeLock } from './wake-lock.js';
 import { buildDailyReminderCalendar, downloadCalendarFile, isValidReminderTime } from './reminder.js';
 import { ACCESSORIES, findNewlyUnlockedBadges, listUnlockedAccessories } from './achievements.js';
 import { ProgressView, createBadgeIcon } from './progress-view.js';
+import { OfflineAudioLibrary } from './offline-audio.js';
 import { ALL_MEDITATIONS, CATEGORIES, FREE_MEDITATION_ID, audioTrackPath, findMeditation } from './meditations.js';
 import { AMBIENCE_AFTER_CHOICES, DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences.js';
 import { describeDuration, formatClock } from './format.js';
@@ -55,6 +56,8 @@ class MeditationApp {
   #activeSession = null;
   #progressView;
   #wornAccessory = null;
+  #offlineLibrary = null;
+  #preparedTrack = null;
 
   constructor(rootElement, optionTemplate) {
     this.#elements = {
@@ -67,6 +70,10 @@ class MeditationApp {
       progressBackButton: requireElement(rootElement, '[data-progress-back]'),
       newBadges: requireElement(rootElement, '[data-new-badges]'),
       linger: requireElement(rootElement, '[data-linger]'),
+      offlinePanel: requireElement(rootElement, '[data-offline-panel]'),
+      offlineStatus: requireElement(rootElement, '[data-offline-status]'),
+      offlineProgress: requireElement(rootElement, '[data-offline-progress]'),
+      offlineDownloadButton: requireElement(rootElement, '[data-offline-download]'),
       lingerText: requireElement(rootElement, '[data-linger-text]'),
       lingerStopButton: requireElement(rootElement, '[data-linger-stop]'),
       ambienceAfterField: requireElement(rootElement, '[data-ambience-after-field]'),
@@ -134,6 +141,10 @@ class MeditationApp {
     this.#wakeLock.release();
     this.#bell.dispose();
     this.#ambience.dispose();
+    this.#offlineLibrary?.dispose();
+    if (this.#preparedTrack !== null) {
+      URL.revokeObjectURL(this.#preparedTrack.objectUrl);
+    }
   }
 
   #bindEvents() {
@@ -152,6 +163,8 @@ class MeditationApp {
     backButton.addEventListener('click', () => this.#showView('setup'), { signal });
     this.#elements.openProgressButton.addEventListener('click', () => this.#openProgress(), { signal });
     this.#elements.lingerStopButton.addEventListener('click', () => this.#stopLingeringMusic(), { signal });
+    this.#elements.offlineDownloadButton.addEventListener('click', () => this.#offlineLibrary?.downloadMissing(), { signal });
+    window.addEventListener('online', () => this.#offlineLibrary?.downloadMissing(), { signal });
     this.#elements.progressBackButton.addEventListener('click', () => this.#showView('setup'), { signal });
     document.addEventListener('keydown', (event) => this.#handleKeydown(event), { signal });
     document.addEventListener('visibilitychange', () => this.#handleVisibilityChange(), { signal });
@@ -214,6 +227,67 @@ class MeditationApp {
     this.#elements.ambienceVolumeField.hidden = !hasAmbience;
     this.#elements.ambienceAfterField.hidden = !hasAmbience;
     this.#elements.startDetail.textContent = `${selectedMeditation.title} · ${durationLabel}`;
+    this.#prepareSelectedTrack();
+  }
+
+  // Only called once the service worker is installed: in a sandboxed preview,
+  // downloading every track would cost bandwidth for an offline mode that cannot work.
+  async enableOfflineMode() {
+    if (!OfflineAudioLibrary.isSupported) {
+      return;
+    }
+    this.#offlineLibrary = new OfflineAudioLibrary({
+      trackPaths: ALL_MEDITATIONS.filter((meditation) => meditation.kind === 'guided').map(audioTrackPath),
+      onProgress: (progress) => this.#handleOfflineProgress(progress),
+    });
+    this.#elements.offlinePanel.hidden = false;
+    this.#handleOfflineProgress({ availableCount: await this.#offlineLibrary.countAvailable(), isDownloading: false });
+    const isSavingData = navigator.connection?.saveData === true;
+    if (navigator.onLine && !isSavingData) {
+      await this.#offlineLibrary.downloadMissing();
+    }
+  }
+
+  #handleOfflineProgress({ availableCount, isDownloading }) {
+    const totalCount = this.#offlineLibrary.totalCount;
+    const isComplete = availableCount === totalCount;
+    const { offlineStatus, offlineProgress, offlineDownloadButton } = this.#elements;
+    offlineProgress.style.setProperty('--fill', String(availableCount / totalCount));
+    offlineDownloadButton.hidden = isComplete || isDownloading;
+    if (isComplete) {
+      offlineStatus.textContent = `Les ${totalCount} séances guidées sont sur votre téléphone : elles marchent en mode avion.`;
+    } else if (isDownloading) {
+      offlineStatus.textContent = `Téléchargement des séances pour le mode avion… ${availableCount} sur ${totalCount}.`;
+    } else {
+      offlineStatus.textContent = `${availableCount} séances sur ${totalCount} sont disponibles en mode avion. `
+        + 'Les autres se téléchargent dès que vous ouvrez l\'appli avec du réseau (environ 45 Mo en tout).';
+    }
+    this.#prepareSelectedTrack();
+  }
+
+  // The blob URL must exist before the tap on « Commencer »: playback has to start
+  // synchronously in that tap, with no time left to read the cache.
+  async #prepareSelectedTrack() {
+    const meditation = this.#readSelectedMeditation();
+    if (this.#offlineLibrary === null || meditation.kind !== 'guided' || this.#preparedTrack?.meditationId === meditation.id) {
+      return;
+    }
+    const objectUrl = await this.#offlineLibrary.createObjectUrl(audioTrackPath(meditation));
+    // The selection may have changed while the cache was being read.
+    if (objectUrl === null || this.#readSelectedMeditation().id !== meditation.id) {
+      if (objectUrl !== null) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      return;
+    }
+    if (this.#preparedTrack !== null && this.#activeSession?.meditation.id !== this.#preparedTrack.meditationId) {
+      URL.revokeObjectURL(this.#preparedTrack.objectUrl);
+    }
+    this.#preparedTrack = { meditationId: meditation.id, objectUrl };
+  }
+
+  #resolveTrackSource(meditation) {
+    return this.#preparedTrack?.meditationId === meditation.id ? this.#preparedTrack.objectUrl : audioTrackPath(meditation);
   }
 
   #handleSetupChange() {
@@ -352,7 +426,7 @@ class MeditationApp {
 
     // Started before the first await: browsers only allow playback inside the click itself.
     const trackPlayback = session.usesAudioTrack
-      ? this.#audioTrack.start(audioTrackPath(session.meditation), session.durationSeconds)
+      ? this.#audioTrack.start(this.#resolveTrackSource(session.meditation), session.durationSeconds)
       : null;
     this.#ambience.start(preferences.ambienceId, preferences.ambienceVolume);
     this.#renderLinger(null);
@@ -389,6 +463,10 @@ class MeditationApp {
       } catch (error) {
         // Offline or blocked file: the session still works with the written cues and the synthesized bell.
         console.warn('Piste audio indisponible, consignes affichées seulement.', error);
+        if (!navigator.onLine) {
+          this.#elements.cue.textContent = "Cette séance n'est pas encore sur votre téléphone : la voix ne peut pas se lancer en mode avion. "
+            + "Les consignes s'affichent à l'écran. Ouvrez l'appli une fois avec du réseau pour la télécharger.";
+        }
         this.#audioTrack.stop();
         session.usesAudioTrack = false;
       }
@@ -613,13 +691,21 @@ class MeditationApp {
 
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) {
-    return;
+    return false;
   }
   try {
     await navigator.serviceWorker.register('./sw.js');
+    return true;
   } catch (error) {
     // Expected in sandboxed previews; the app simply runs without offline support there.
     console.info('Mode hors ligne indisponible ici.', error);
+    return false;
+  }
+}
+
+async function startOfflineSupport(meditationApp) {
+  if (await registerServiceWorker()) {
+    await meditationApp.enableOfflineMode();
   }
 }
 
@@ -629,7 +715,7 @@ try {
     requireElement(document, '[data-meditation-option-template]'),
   );
   meditationApp.init();
-  registerServiceWorker();
+  startOfflineSupport(meditationApp);
   window.addEventListener('pagehide', (event) => {
     // A page kept in the back/forward cache will be shown again as-is, so it must stay alive.
     if (!event.persisted) {

@@ -23,7 +23,7 @@ Chaque méditation guidée est une seule piste MP3 (cloche, consignes, silences,
 - Onze badges. Six d'entre eux offrent un accessoire à la mascotte (fleur, bonnet, écharpe, casque, lunettes, couronne), porté dès qu'il est gagné.
 
 **Au quotidien**
-- **Installable sur téléphone** (application web progressive) : icône sur l'écran d'accueil, plein écran, fonctionnement hors ligne. Chaque méditation est gardée en cache après sa première écoute.
+- **Installable sur téléphone** (application web progressive) : icône sur l'écran d'accueil, plein écran, fonctionnement hors ligne. Dès que l'appli est ouverte avec du réseau, toutes les méditations guidées (environ 45 Mo) sont téléchargées sur le téléphone ; elles se lisent ensuite directement depuis sa mémoire, en mode avion compris. Le panneau « Mode avion » de l'accueil indique où en est le téléchargement.
 - **Rappel quotidien** : un rendez-vous récurrent avec alerte est ajouté à l'agenda du téléphone. Sans serveur, c'est le seul moyen fiable d'être prévenu à heure fixe, appli fermée.
 - L'écran reste allumé pendant la séance. Mode sombre automatique. Réglages et historique sont gardés dans le navigateur (`localStorage`).
 - Raccourcis : `Espace` met en pause, `M` coupe la musique, `Échap` termine.
@@ -95,6 +95,7 @@ js/history.js          historique, séries et statistiques
 js/achievements.js     badges et accessoires
 js/progress-view.js    écran « Mes progrès » : records, calendrier, badges
 js/reminder.js         rappel quotidien au format agenda (.ics)
+js/offline-audio.js    téléchargement des pistes pour le mode avion et lecture depuis le téléphone
 js/preferences.js      réglages mémorisés
 js/storage.js          accès au localStorage protégé contre les erreurs
 js/wake-lock.js        maintien de l'écran allumé

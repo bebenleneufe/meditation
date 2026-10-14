@@ -4,7 +4,7 @@
 // media without ranges, and Chrome aborts a playback whose ranges mix network
 // responses with ones built here, so a single playback never mixes the two.
 
-const SHELL_CACHE = 'shell-v4';
+const SHELL_CACHE = 'shell-v5';
 const AUDIO_CACHE = 'audio-v1';
 const FONT_CACHE = 'fonts-v1';
 const KNOWN_CACHES = new Set([SHELL_CACHE, AUDIO_CACHE, FONT_CACHE]);
@@ -26,6 +26,7 @@ const SHELL_FILES = [
   './js/guided-script.js',
   './js/history.js',
   './js/meditations.js',
+  './js/offline-audio.js',
   './js/preferences.js',
   './js/progress-view.js',
   './js/reminder.js',
