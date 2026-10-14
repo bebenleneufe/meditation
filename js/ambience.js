@@ -101,27 +101,103 @@ function buildPad(audioContext, output) {
   return sources;
 }
 
+const RAIN_LOOP_SECONDS = 16;
+// Drops stop short of the loop's end so none is cut in half at the seam.
+const RAIN_SEAM_MARGIN_SECONDS = 0.15;
+
+// One raindrop: a tiny noise click followed by a short tone whose pitch rises,
+// like the air bubble a drop traps when it hits water. Equal-power panning
+// spreads the drops across the stereo field.
+function addRaindrop(channels, sampleRate, startIndex, { frequencyHz, decaySeconds, amplitude, pan }) {
+  const [leftSamples, rightSamples] = channels;
+  const leftGain = Math.cos(pan * Math.PI / 2);
+  const rightGain = Math.sin(pan * Math.PI / 2);
+  const length = Math.round(decaySeconds * 5 * sampleRate);
+  const clickLength = Math.round(0.0008 * sampleRate);
+  let phase = 0;
+  for (let offset = 0; offset < length && startIndex + offset < leftSamples.length; offset += 1) {
+    const progress = offset / length;
+    phase += 2 * Math.PI * frequencyHz * (1 + 0.6 * progress) / sampleRate;
+    const envelope = Math.exp(-offset / (decaySeconds * sampleRate));
+    const click = offset < clickLength ? (Math.random() * 2 - 1) * (1 - offset / clickLength) * 0.6 : 0;
+    const value = amplitude * (envelope * Math.sin(phase) + click);
+    leftSamples[startIndex + offset] += value * leftGain;
+    rightSamples[startIndex + offset] += value * rightGain;
+  }
+}
+
+function scatterRaindrops(channels, sampleRate, { meanGapSeconds, frequencyRange, decayRange, amplitudeRange }) {
+  const lastStart = channels[0].length - Math.round(RAIN_SEAM_MARGIN_SECONDS * sampleRate);
+  let cursor = 0;
+  for (;;) {
+    cursor += Math.max(1, Math.round(-Math.log(1 - Math.random()) * meanGapSeconds * sampleRate));
+    if (cursor >= lastStart) {
+      return;
+    }
+    // Squaring skews amplitudes toward quiet: most drops are distant, a few are close.
+    const loudness = Math.random() ** 2;
+    addRaindrop(channels, sampleRate, cursor, {
+      frequencyHz: randomBetween(...frequencyRange),
+      decaySeconds: randomBetween(...decayRange),
+      amplitude: amplitudeRange[0] + loudness * (amplitudeRange[1] - amplitudeRange[0]),
+      pan: Math.random(),
+    });
+  }
+}
+
+function fillRaindrops(channels, sampleRate) {
+  scatterRaindrops(channels, sampleRate, {
+    meanGapSeconds: 1 / 70,
+    frequencyRange: [2200, 6000],
+    decayRange: [0.002, 0.008],
+    amplitudeRange: [0.02, 0.3],
+  });
+  scatterRaindrops(channels, sampleRate, {
+    meanGapSeconds: 0.35,
+    frequencyRange: [700, 1800],
+    decayRange: [0.012, 0.03],
+    amplitudeRange: [0.15, 0.55],
+  });
+}
+
+function createStereoGeneratedBuffer(audioContext, seconds, fillChannels) {
+  const buffer = audioContext.createBuffer(2, Math.round(seconds * audioContext.sampleRate), audioContext.sampleRate);
+  fillChannels([buffer.getChannelData(0), buffer.getChannelData(1)], audioContext.sampleRate);
+  return buffer;
+}
+
 function buildRain(audioContext, output) {
-  const drops = createLoopingNoise(audioContext, { isBrown: false });
-  const highpass = audioContext.createBiquadFilter();
-  highpass.type = 'highpass';
-  highpass.frequency.value = 900;
-  const lowpass = audioContext.createBiquadFilter();
-  lowpass.type = 'lowpass';
-  lowpass.frequency.value = 5500;
+  // The patter of individual drops is what makes rain recognisable; the
+  // continuous hiss underneath stays soft and muffled so it never reads as static.
+  const drops = createLoopingBuffer(audioContext, createStereoGeneratedBuffer(audioContext, RAIN_LOOP_SECONDS, fillRaindrops));
+  const dropsFilter = audioContext.createBiquadFilter();
+  dropsFilter.type = 'lowpass';
+  dropsFilter.frequency.value = 7000;
   const dropsGain = audioContext.createGain();
-  dropsGain.gain.value = 0.16;
-  drops.connect(highpass).connect(lowpass).connect(dropsGain).connect(output);
+  dropsGain.gain.value = 0.9;
+  drops.connect(dropsFilter).connect(dropsGain).connect(output);
+
+  const bed = createLoopingNoise(audioContext, { isBrown: false });
+  const bedHighpass = audioContext.createBiquadFilter();
+  bedHighpass.type = 'highpass';
+  bedHighpass.frequency.value = 400;
+  const bedLowpass = audioContext.createBiquadFilter();
+  bedLowpass.type = 'lowpass';
+  bedLowpass.frequency.value = 2200;
+  const bedGain = audioContext.createGain();
+  bedGain.gain.value = 0.09;
+  bed.connect(bedHighpass).connect(bedLowpass).connect(bedGain).connect(output);
 
   const rumble = createLoopingNoise(audioContext, { isBrown: true });
   const rumbleFilter = audioContext.createBiquadFilter();
   rumbleFilter.type = 'lowpass';
-  rumbleFilter.frequency.value = 450;
+  rumbleFilter.frequency.value = 300;
   const rumbleGain = audioContext.createGain();
-  rumbleGain.gain.value = 0.5;
+  rumbleGain.gain.value = 0.53;
   rumble.connect(rumbleFilter).connect(rumbleGain).connect(output);
 
-  return [drops, rumble, modulate(audioContext, dropsGain.gain, { frequencyHz: 0.05, depth: 0.04 })];
+  // The shower slowly thickens and thins, as real rain does.
+  return [drops, bed, rumble, modulate(audioContext, dropsGain.gain, { frequencyHz: 0.04, depth: 0.21 })];
 }
 
 function buildWaves(audioContext, output) {
